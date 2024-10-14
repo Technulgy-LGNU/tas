@@ -1,0 +1,18 @@
+# Only used for testing, so all will be pushed to git for ease of use
+
+Database:
+  Host: "192.168.178.137"
+  Port: 5432
+  Username: "tas"
+  Password: "someSecurePassword"
+  Database: "tas"
+  TimeZone: "Europe/Berlin"
+
+# This user will be deleted after the initial setup
+User:
+  InitialAdminUser: "admin@example.com"
+  InitialAdminPassword: "adminPassword"
+
+Website:
+  Host: "0.0.0.0"
+  Port: 8080
