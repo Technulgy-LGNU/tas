@@ -16,3 +16,13 @@ User:
 Website:
   Host: "0.0.0.0"
   Port: 8080
+
+Email:
+  Host: "mail.technulgy.com"
+  ApiKey: "mhm"
+  SenderEmail: "noreply@technulgy.com"
+  Password: "2w@#i231&67D%9h$2T#6&z#cO@6@!!&0"
+
+Nextcloud:
+  Host: "nc.technulgy.com"
+  ApiKey: "mhm"
