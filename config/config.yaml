@@ -4,7 +4,7 @@ Database:
   Host: "192.168.178.137"
   Port: 5432
   Username: "tas"
-  Password: "someSecurePassword"
+  Password: "tasPassword"
   Database: "tas"
   TimeZone: "Europe/Berlin"
 

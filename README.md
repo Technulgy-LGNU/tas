@@ -58,7 +58,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - psql-data:/var/lib/postgresql/data
+      - psql-data:/data
 
 volumes:
   psql-data:

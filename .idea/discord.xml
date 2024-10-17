@@ -2,11 +2,11 @@
 <project version="4">
   <component name="DiscordProjectSettings">
     <option name="show" value="PROJECT_FILES" />
-    <option name="description" value="" />
+    <option name="description" value="Technulgy Admin Software" />
     <option name="applicationTheme" value="default" />
     <option name="iconsTheme" value="default" />
-    <option name="button1Title" value="" />
-    <option name="button1Url" value="" />
+    <option name="button1Title" value="Technulgy" />
+    <option name="button1Url" value="https://github.com/Robotik-Lessing-Gymnasium-Neu-Ulm/tas" />
     <option name="button2Title" value="" />
     <option name="button2Url" value="" />
     <option name="customApplicationId" value="" />

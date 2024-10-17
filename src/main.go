@@ -20,7 +20,7 @@ func main() {
 
 	// Database
 	var DB = database.GetDatabase(CFG)
-	database.InitDatabase(DB)
+	database.InitDatabase(CFG, DB)
 
 	// Util
 

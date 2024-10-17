@@ -64,13 +64,13 @@ func GetConfig() *CFG {
 		const file = "config/config.yaml"
 		var config CFG
 
-		cfgfile, err := os.Open(file)
+		cfgFile, err := os.Open(file)
 		if err != nil {
 			log.SetFlags(log.LstdFlags & log.Lshortfile)
 			log.Fatalf("Error readeing config file: %d\n", err)
 		}
 
-		yamlParser := yaml.NewDecoder(cfgfile)
+		yamlParser := yaml.NewDecoder(cfgFile)
 		err = yamlParser.Decode(&config)
 		if err != nil {
 			log.SetFlags(log.LstdFlags & log.Lshortfile)
