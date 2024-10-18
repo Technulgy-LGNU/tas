@@ -5,13 +5,13 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/healthcheck"
-	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/monitor"
 	"github.com/gofiber/websocket/v2"
 	"gorm.io/gorm"
 	"log"
 	"strings"
 	"tas/src/config"
+	cLog "tas/src/log"
 )
 
 type API struct {
@@ -21,7 +21,7 @@ type API struct {
 
 var clients = make(map[*websocket.Conn]bool)
 
-func InitWeb(cfg *config.CFG, db *gorm.DB) {
+func InitWeb(logger *cLog.FiberCustomLogger, cfg *config.CFG, db *gorm.DB) {
 	var (
 		addr = fmt.Sprintf("%s:%d", cfg.Website.Host, cfg.Website.Port)
 
@@ -52,12 +52,6 @@ func InitWeb(cfg *config.CFG, db *gorm.DB) {
 			AllowCredentials: false,
 		})
 
-		logs = logger.New(logger.Config{
-			Next:     noLog,
-			Format:   "[${ip}]:${port} ${status} - ${method} ${path}\n",
-			TimeZone: "Europe/Berlin",
-		})
-
 		// Monitor
 		mon = monitor.New(monitor.Config{
 			Title: "ShowMaster Monitor",
@@ -66,7 +60,7 @@ func InitWeb(cfg *config.CFG, db *gorm.DB) {
 
 	// Internal tools
 	app.Use(c)                                          // Cors middleware
-	app.Use(logs)                                       // Logger
+	app.Use(logger.FiberLoggerMiddleware())             // Logger
 	app.Use(healthcheck.New(healthcheck.ConfigDefault)) // Healthcheck
 	app.Use("/ws", func(c *fiber.Ctx) error {           // Websocket middleware
 		if websocket.IsWebSocketUpgrade(c) {

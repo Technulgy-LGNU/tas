@@ -4,6 +4,7 @@ import (
 	"log"
 	"tas/src/config"
 	"tas/src/database"
+	cLog "tas/src/log"
 	"tas/src/web"
 )
 
@@ -18,14 +19,22 @@ func main() {
 	// Config
 	var CFG = config.GetConfig()
 
+	// GormLogger
+	gormLogger := &cLog.GormCustomLogger{}
+	gormLogger.StartDailyFlush()
+	gormLogger.HandleShutdown()
 	// Database
-	var DB = database.GetDatabase(CFG)
+	var DB = database.GetDatabase(gormLogger, CFG)
 	database.InitDatabase(CFG, DB)
 
 	// Util
 
 	// Routines
 
+	// FiberLogger
+	fiberLogger := &cLog.GormCustomLogger{}
+	fiberLogger.StartDailyFlush()
+	fiberLogger.HandleShutdown()
 	// Web
-	web.InitWeb(CFG, DB)
+	web.InitWeb((*cLog.FiberCustomLogger)(fiberLogger), CFG, DB)
 }

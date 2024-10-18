@@ -6,9 +6,10 @@ import (
 	"gorm.io/gorm"
 	"log"
 	"tas/src/config"
+	cLog "tas/src/log"
 )
 
-func GetDatabase(cfg *config.CFG) *gorm.DB {
+func GetDatabase(customLogger *cLog.GormCustomLogger, cfg *config.CFG) *gorm.DB {
 	var (
 		dbURI = fmt.Sprintf("host=%s user=%s dbname=%s sslmode=disable password=%s TimeZone=%s",
 			cfg.DB.Host,
@@ -21,7 +22,9 @@ func GetDatabase(cfg *config.CFG) *gorm.DB {
 	)
 
 	// Open connection to database
-	db, err := gorm.Open(postgres.Open(dbURI), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(dbURI), &gorm.Config{
+		Logger: customLogger,
+	})
 	if err != nil {
 		log.SetFlags(log.LstdFlags | log.Lshortfile)
 		log.Fatalf("Error connecting to database: %d\n", err)

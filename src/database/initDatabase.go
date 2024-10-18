@@ -132,9 +132,31 @@ type Newsletter struct {
 	gorm.Model
 	ID uint64 `gorm:"primaryKey"`
 
-	Name          string
-	FollowersDB   string
-	NewslettersDB string
+	Name        string
+	Followers   *[]Follower
+	Newsletters *[]News
+}
+
+type Follower struct {
+	gorm.Model
+	ID uint64 `gorm:"primaryKey"`
+
+	Email string
+
+	NewsletterID uint64 `gorm:"index"`
+	Newsletter   Newsletter
+}
+
+type News struct {
+	gorm.Model
+	ID uint64 `gorm:"primaryKey"`
+
+	Name     string
+	SendDate *time.Time
+	Content  *string
+
+	NewsletterID uint64 `gorm:"index"`
+	Newsletter   Newsletter
 }
 
 type Order struct {
@@ -222,22 +244,6 @@ func InitDatabase(cfg *config.CFG, db *gorm.DB) {
 	if err != nil {
 		log.SetFlags(log.LstdFlags | log.Lshortfile)
 		log.Printf("Error migrating Website: %v\n", err)
-	}
-
-	// Schemas and nonGorm Stuff
-	var sqlDB, _ = db.DB()
-	defer sqlDB.Close()
-
-	_, err = sqlDB.Exec("CREATE SCHEMA IF NOT EXISTS newsletters;")
-	if err != nil {
-		log.SetFlags(log.LstdFlags | log.Lshortfile)
-		log.Printf("Error creating newsletter schema: %v\n", err)
-	}
-
-	_, err = sqlDB.Exec("CREATE SCHEMA IF NOT EXISTS orders;")
-	if err != nil {
-		log.SetFlags(log.LstdFlags | log.Lshortfile)
-		log.Printf("Error creating order schema: %v\n", err)
 	}
 
 	// Initial Admin user
