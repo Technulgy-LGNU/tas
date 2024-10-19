@@ -16,7 +16,7 @@ FROM node:current-alpine AS builder-npm
 
 WORKDIR /web
 
-COPY public/ ./
+COPY web/ ./
 
 RUN npm install
 

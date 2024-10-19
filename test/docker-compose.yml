@@ -5,30 +5,39 @@ services:
   app:
     build:
       context: .
-      dockerfile: DOCKERFILE
+      dockerfile: ../DOCKERFILE
     restart: always
-    ports:
-      - "80:80"
     depends_on:
       - db
     environment:
-      - DBUser=showmaster
-      - DBPassword=password
-      - Database=showmaster
+      - DBUser=tas
+      - DBPassword=tasPassword
+      - Database=tas
       - TimeZone=Europe/Berlin
-      - AdminUserName=admin
-      - AdminPassword=1234
+      - InitialAdminUser=admin
+      - InitialAdminPassword=1234
+      - EmailHost=mail.technulgy.com
+      - EmailApiKey=mhm
+      - SenderEmail=noreply@tghd.email
+      - SenderEmailPassword=2w@#i231&67D%9h$2T#6&z#cO@6@!!&0
+      - NCHost=nc.technulgy.com
+      - NCApiKey=mhm
+    ports:
+      - "80:80"
+    volumes:
+      - tas-data:/var/lib/tas/data
 
   db:
     image: postgres:16-alpine
     restart: always
     environment:
-      - POSTGRES_USER=showmaster
-      - POSTGRES_PASSWORD=password
+      - POSTGRES_USER=tas
+      - POSTGRES_PASSWORD=tasPassword
     ports:
       - "5432:5432"
     volumes:
-      - psql-data:/var/lib/postgresql/data
+      - psql-data:/data
 
 volumes:
   psql-data:
+  tas-data:
