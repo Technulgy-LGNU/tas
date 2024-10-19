@@ -1,6 +1,7 @@
 package web
 
 import (
+	"errors"
 	"fmt"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -19,9 +20,7 @@ type API struct {
 	Clients map[*websocket.Conn]bool
 }
 
-var clients = make(map[*websocket.Conn]bool)
-
-func InitWeb(logger *cLog.FiberCustomLogger, cfg *config.CFG, db *gorm.DB) {
+func InitWeb(logger *cLog.FiberCustomLogger, cfg *config.CFG, db *gorm.DB) error {
 	var (
 		addr = fmt.Sprintf("%s:%d", cfg.Website.Host, cfg.Website.Port)
 
@@ -76,7 +75,7 @@ func InitWeb(logger *cLog.FiberCustomLogger, cfg *config.CFG, db *gorm.DB) {
 	app.Mount("/api", api)
 	a := API{
 		DB:      db,
-		Clients: clients,
+		Clients: make(map[*websocket.Conn]bool),
 	}
 	// Websocket
 	api.Get("/ws", websocket.New(a.WebsocketConnection))
@@ -98,10 +97,10 @@ func InitWeb(logger *cLog.FiberCustomLogger, cfg *config.CFG, db *gorm.DB) {
 	app.Static("/cdn", "./var/lib/tas/data/cdn")
 
 	// Start fiber
-	log.Println("Started ShowMaster V3")
+	log.Println("Started T.A.S. V1")
 	err = app.Listen(addr)
 	if err != nil {
-		log.SetFlags(log.LstdFlags | log.Lshortfile)
-		log.Fatalf("Web init error: %d\n", err)
+		return errors.New(fmt.Sprintf("error starting web server %s\n", err))
 	}
+	return nil
 }

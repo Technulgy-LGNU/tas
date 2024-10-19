@@ -2,6 +2,7 @@ package database
 
 import (
 	"errors"
+	"fmt"
 	"gopkg.in/yaml.v3"
 	"gorm.io/gorm"
 	"log"
@@ -15,11 +16,12 @@ type User struct {
 	gorm.Model
 	ID uint64 `gorm:"primaryKey"`
 
-	Name     string
-	Email    string
-	Password string
-	Keys     *[]UserKey
-	Perms    Permission
+	Name       string
+	Email      string
+	Password   string
+	Keys       *[]UserKey
+	Perms      Permission
+	Newsletter *[]Newsletter
 
 	TeamID *uint64 `gorm:"index"`
 	Team   *Team
@@ -82,9 +84,6 @@ type ParticipationHistory struct {
 
 	TeamID uint64 `gorm:"index"`
 	Team   Team
-
-	EventsID uint64 `gorm:"index"`
-	Events   Event
 }
 
 type Event struct {
@@ -104,10 +103,10 @@ type Sponsor struct {
 	Name   string
 	Joined time.Time
 	Left   *time.Time
-	Gifts  []Gifts
+	Gifts  []Gift
 }
 
-type Gifts struct {
+type Gift struct {
 	gorm.Model
 	ID uint64 `gorm:"primaryKey"`
 
@@ -135,6 +134,9 @@ type Newsletter struct {
 	Name        string
 	Followers   *[]Follower
 	Newsletters *[]News
+
+	UserID uint64 `gorm:"index"`
+	User   User
 }
 
 type Follower struct {
@@ -159,15 +161,76 @@ type News struct {
 	Newsletter   Newsletter
 }
 
+type Link struct {
+	gorm.Model
+	ID uint64 `gorm:"primaryKey"`
+
+	OriginalURL string
+	ForwardURL  string
+	Clicks      []Click
+}
+
+type Click struct {
+	gorm.Model
+	ID uint64 `gorm:"primaryKey"`
+
+	IP     string
+	Clicks int
+
+	LinkID uint64 `gorm:"index"`
+	Link   Link
+}
+
 type Order struct {
 	gorm.Model
 	ID uint64 `gorm:"primaryKey"`
 
-	Name     string
-	OrdersDB string
+	Name    string
+	Orders  []OrderEntry
+	Request []Request
 }
 
-type Website struct {
+type OrderEntry struct {
+	gorm.Model
+	ID uint64 `gorm:"primaryKey"`
+
+	Request Request
+	Name    string
+	Amount  int
+	Price   float32
+	Shop    string
+	Link    string
+	Notes   string
+
+	OrderID uint64 `gorm:"index"`
+	Order   Order
+}
+
+type Request struct {
+	gorm.Model
+	ID uint64 `gorm:"primaryKey"`
+
+	Requester User
+	Approved  bool
+	Name      string
+	Amount    int
+	Shop      string
+	Link      string
+	Notes     string
+
+	OrderID uint64 `gorm:"index"`
+	Order   Order
+}
+
+type RepeatingOrder struct {
+	gorm.Model
+	ID uint64 `gorm:"primaryKey"`
+
+	Name string
+	Link string
+}
+
+type Post struct {
 	gorm.Model
 	ID uint64 `gorm:"primaryKey"`
 
@@ -176,74 +239,112 @@ type Website struct {
 	ReleaseDate time.Time
 }
 
-func InitDatabase(cfg *config.CFG, db *gorm.DB) {
+type File struct {
+	gorm.Model
+	ID uint64 `gorm:"primaryKey"`
+
+	Name      string
+	Location  string
+	ShortLink string
+}
+
+func InitDatabase(cfg *config.CFG, db *gorm.DB) error {
 	var err error
 
 	// Auto migrating
 	err = db.AutoMigrate(&User{})
 	if err != nil {
-		log.SetFlags(log.LstdFlags | log.Lshortfile)
-		log.Printf("Error migrating Users: %v\n", err)
+		return errors.New(fmt.Sprintf("error migrating table: %v\n", err))
 	}
 
 	err = db.AutoMigrate(&UserKey{})
 	if err != nil {
-		log.SetFlags(log.LstdFlags | log.Lshortfile)
-		log.Printf("Error migrating UserKeys: %v\n", err)
+		return errors.New(fmt.Sprintf("error migrating table: %v\n", err))
 	}
 
 	err = db.AutoMigrate(&Permission{})
 	if err != nil {
-		log.SetFlags(log.LstdFlags | log.Lshortfile)
-		log.Printf("Error migrating Permissions: %v\n", err)
+		return errors.New(fmt.Sprintf("error migrating table: %v\n", err))
 	}
 
 	err = db.AutoMigrate(&Team{})
 	if err != nil {
-		log.SetFlags(log.LstdFlags | log.Lshortfile)
-		log.Printf("Error migrating Teams: %v\n", err)
+		return errors.New(fmt.Sprintf("error migrating table: %v\n", err))
 	}
 
 	err = db.AutoMigrate(&ParticipationHistory{})
 	if err != nil {
-		log.SetFlags(log.LstdFlags | log.Lshortfile)
-		log.Printf("Error migrating ParticipationHistory: %v\n", err)
+		return errors.New(fmt.Sprintf("error migrating table: %v\n", err))
 	}
 
 	err = db.AutoMigrate(&Event{})
 	if err != nil {
-		log.SetFlags(log.LstdFlags | log.Lshortfile)
-		log.Printf("Error migrating Events: %v\n", err)
+		return errors.New(fmt.Sprintf("error migrating table: %v\n", err))
 	}
 
 	err = db.AutoMigrate(&Sponsor{})
 	if err != nil {
-		log.SetFlags(log.LstdFlags | log.Lshortfile)
-		log.Printf("Error migrating Sponsors: %v\n", err)
+		return errors.New(fmt.Sprintf("error migrating table: %v\n", err))
+	}
+
+	err = db.AutoMigrate(&Gift{})
+	if err != nil {
+		return errors.New(fmt.Sprintf("error migrating table: %v\n", err))
 	}
 
 	err = db.AutoMigrate(&Form{})
 	if err != nil {
-		log.SetFlags(log.LstdFlags | log.Lshortfile)
-		log.Printf("Error migrating Forms: %v\n", err)
+		return errors.New(fmt.Sprintf("error migrating table: %v\n", err))
 	}
 
 	err = db.AutoMigrate(&Newsletter{})
 	if err != nil {
-		log.SetFlags(log.LstdFlags | log.Lshortfile)
-		log.Printf("Error migrating Newsletters: %v\n", err)
+		return errors.New(fmt.Sprintf("error migrating table: %v\n", err))
+	}
+
+	err = db.AutoMigrate(&News{})
+	if err != nil {
+		return errors.New(fmt.Sprintf("error migrating table: %v\n", err))
+	}
+
+	err = db.AutoMigrate(&Link{})
+	if err != nil {
+		return errors.New(fmt.Sprintf("error migrating table: %v\n", err))
+	}
+
+	err = db.AutoMigrate(&Click{})
+	if err != nil {
+		return errors.New(fmt.Sprintf("error migrating table: %v\n", err))
 	}
 
 	err = db.AutoMigrate(&Order{})
 	if err != nil {
-		log.SetFlags(log.LstdFlags | log.Lshortfile)
-		log.Printf("Error migrating Orders: %v\n", err)
+		return errors.New(fmt.Sprintf("error migrating table: %v\n", err))
 	}
 
-	err = db.AutoMigrate(&Website{})
+	err = db.AutoMigrate(&OrderEntry{})
 	if err != nil {
-		log.SetFlags(log.LstdFlags | log.Lshortfile)
-		log.Printf("Error migrating Website: %v\n", err)
+		return errors.New(fmt.Sprintf("error migrating table: %v\n", err))
+	}
+
+	err = db.AutoMigrate(&Request{})
+	if err != nil {
+		return errors.New(fmt.Sprintf("error migrating table: %v\n", err))
+	}
+
+	err = db.AutoMigrate(&RepeatingOrder{})
+	if err != nil {
+		return errors.New(fmt.Sprintf("error migrating table: %v\n", err))
+	}
+
+	err = db.AutoMigrate(&Post{})
+	if err != nil {
+		return errors.New(fmt.Sprintf("error migrating table: %v\n", err))
+	}
+
+	err = db.AutoMigrate(&File{})
+	if err != nil {
+		return errors.New(fmt.Sprintf("error migrating table: %v\n", err))
 	}
 
 	// Initial Admin user
@@ -260,31 +361,27 @@ func InitDatabase(cfg *config.CFG, db *gorm.DB) {
 
 			file, err := os.Create("data/cache.yaml")
 			if err != nil {
-				log.SetFlags(log.LstdFlags | log.Lshortfile)
-				log.Fatalf("Error creating cache file: %v\n", err)
+				return errors.New(fmt.Sprintf("error creating file: %v\n", err))
 			}
 			log.Println("Cache file created")
 			defer file.Close()
 
 			_, err = file.Write([]byte("AdminUserCreated: false"))
 			if err != nil {
-				log.SetFlags(log.LstdFlags | log.Lshortfile)
-				log.Printf("Error writing to cache file: %v\n", err)
+				return errors.New(fmt.Sprintf("error writing to file: %v\n", err))
 			}
 		}
 		var d data
 
 		dataFile, err := os.Open("data/cache.yaml")
 		if err != nil {
-			log.SetFlags(log.LstdFlags & log.Lshortfile)
-			log.Fatalf("Error readeing config file: %d\n", err)
+			return errors.New(fmt.Sprintf("error opening file: %v\n", err))
 		}
 
 		yamlParser := yaml.NewDecoder(dataFile)
 		err = yamlParser.Decode(&d)
 		if err != nil {
-			log.SetFlags(log.LstdFlags & log.Lshortfile)
-			log.Fatalf("Error readeing config file: %d\n", err)
+			return errors.New(fmt.Sprintf("error reading file: %v\n", err))
 		}
 
 		if !d.AdminUserCreated {
@@ -300,19 +397,22 @@ func InitDatabase(cfg *config.CFG, db *gorm.DB) {
 				},
 			}
 			db.Create(&U)
-			changeAdminStatus()
+			err = changeAdminStatus()
+			if err != nil {
+				return errors.New(fmt.Sprintf("error changing admin status: %v\n", err))
+			}
 			log.Println("Admin user created")
 		}
 	} else {
 		panic("Error: Wrong command line argument")
 	}
+	return nil
 }
 
-func changeAdminStatus() {
+func changeAdminStatus() error {
 	file, err := os.ReadFile("data/cache.yaml")
 	if err != nil {
-		log.SetFlags(log.LstdFlags | log.Lshortfile)
-		log.Printf("Error opening cache file: %v\n", err)
+		return errors.New(fmt.Sprintf("error migrating table: %v\n", err))
 	}
 
 	lines := strings.Split(string(file), "\n")
@@ -324,6 +424,7 @@ func changeAdminStatus() {
 	output := strings.Join(lines, "\n")
 	err = os.WriteFile("data/cache.yaml", []byte(output), 0644)
 	if err != nil {
-		log.Fatalln(err)
+		return errors.New(fmt.Sprintf("error writing to file: %v\n", err))
 	}
+	return nil
 }

@@ -6,14 +6,13 @@ import (
 	"gorm.io/gorm/logger"
 	"log"
 	"os"
-	"os/signal"
 	"sync"
-	"syscall"
 	"time"
 )
 
 const (
-	maxLogBufferSize = 1000 // Maximum log entries before flushing to disk
+	// maxLogBufferSize Maximum log entries before flushing to disk
+	maxLogBufferSize = 1000
 )
 
 // GormCustomLogger accumulates logs in memory, writes them to disk at the end of the day,
@@ -59,28 +58,26 @@ func (l *GormCustomLogger) addToLogBuffer(level string, logMessage string) {
 	defer l.mutex.Unlock()
 
 	logEntry := fmt.Sprintf("[%s] %s: %s\n", time.Now().Format(time.RFC3339), level, logMessage)
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	log.Print(logEntry)
 	l.logBuffer = append(l.logBuffer, logEntry)
+	log.Println(len(l.logBuffer))
 
 	if len(l.logBuffer) >= maxLogBufferSize {
-		l.writeLogToDisk()
+		l.mutex.Unlock()
+		l.WriteLogToDisk()
+		l.mutex.Lock()
 	}
 }
 
-func (l *GormCustomLogger) writeLogToDisk() {
+// WriteLogToDisk Writes log to disk, either creates a new file or appends to an existing one
+func (l *GormCustomLogger) WriteLogToDisk() {
 	// Lock
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
-
-	// Check if logBuffer is empty
-	if len(l.logBuffer) == 0 {
-		return
-	}
+	fmt.Println("Logging data to file")
 
 	// Write to disk
-	fileName := fmt.Sprintf("./log/gorm_logs/%s.log", time.Now().Format("2006-1-02"))
-	file, err := os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	fileName := fmt.Sprintf("data/log/gorm_logs/%s.log", time.Now().Format("2006-1-02"))
+	file, err := os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
 		log.SetFlags(log.LstdFlags | log.Lshortfile)
 		log.Printf("Error opening logfile: %v\n", err)
@@ -89,7 +86,7 @@ func (l *GormCustomLogger) writeLogToDisk() {
 	defer file.Close()
 
 	for _, logEntry := range l.logBuffer {
-		if _, err := file.WriteString(logEntry + "\n"); err != nil {
+		if _, err := file.WriteString(logEntry); err != nil {
 			log.SetFlags(log.LstdFlags | log.Lshortfile)
 			log.Printf("Error writing log to disk: %v\n", err)
 			return
@@ -106,20 +103,7 @@ func (l *GormCustomLogger) StartDailyFlush() {
 	go func() {
 		for {
 			<-ticker.C
-			l.writeLogToDisk()
+			l.WriteLogToDisk()
 		}
-	}()
-}
-
-// HandleShutdown Flush logs to disk on shutdown
-func (l *GormCustomLogger) HandleShutdown() {
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		<-c
-		log.SetFlags(log.LstdFlags | log.Lshortfile)
-		log.Println("Flushing logs to disk before shutdown ...")
-		l.writeLogToDisk()
-		os.Exit(0)
 	}()
 }

@@ -6,7 +6,7 @@ import (
 )
 
 func (a *API) WebsocketConnection(c *websocket.Conn) {
-	clients[c] = true
+	a.Clients[c] = true
 
 	for {
 		_, p, err := c.ReadMessage()
@@ -17,8 +17,8 @@ func (a *API) WebsocketConnection(c *websocket.Conn) {
 	}
 }
 
-func SendMessage(msg []byte) {
-	for client := range clients {
+func (a *API) SendMessage(msg []byte) {
+	for client := range a.Clients {
 		err := client.WriteMessage(websocket.TextMessage, msg)
 		if err != nil {
 			if err := client.Close(); err != nil {
@@ -28,7 +28,7 @@ func SendMessage(msg []byte) {
 			log.SetFlags(log.LstdFlags | log.Lshortfile)
 			log.Printf("Error sending message: %d\n", err)
 			log.Println("Deleting client ...")
-			delete(clients, client)
+			delete(a.Clients, client)
 		}
 	}
 }

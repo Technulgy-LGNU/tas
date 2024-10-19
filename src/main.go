@@ -2,9 +2,13 @@ package main
 
 import (
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 	"tas/src/config"
 	"tas/src/database"
 	cLog "tas/src/log"
+	"tas/src/util"
 	"tas/src/web"
 )
 
@@ -16,25 +20,55 @@ func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	log.Println("Starting T.A.S. ...")
 
+	// CheckDirs (If not, error on log write)
+	util.CheckDirs()
+
 	// Config
 	var CFG = config.GetConfig()
 
 	// GormLogger
 	gormLogger := &cLog.GormCustomLogger{}
 	gormLogger.StartDailyFlush()
-	gormLogger.HandleShutdown()
 	// Database
-	var DB = database.GetDatabase(gormLogger, CFG)
-	database.InitDatabase(CFG, DB)
+	DB, err := database.GetDatabase(gormLogger, CFG)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = database.InitDatabase(CFG, DB)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// Util
 
 	// Routines
 
 	// FiberLogger
-	fiberLogger := &cLog.GormCustomLogger{}
+	fiberLogger := &cLog.FiberCustomLogger{}
 	fiberLogger.StartDailyFlush()
-	fiberLogger.HandleShutdown()
 	// Web
-	web.InitWeb((*cLog.FiberCustomLogger)(fiberLogger), CFG, DB)
+	err = web.InitWeb(fiberLogger, CFG, DB)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Handle shutdown (Not working, don't know why ...)
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGHUP, syscall.SIGKILL)
+
+	done := make(chan bool, 1)
+
+	go func() {
+		sig := <-sigs
+		log.Println()
+		log.Printf("Caught signal %s; exiting...", sig)
+
+		gormLogger.WriteLogToDisk()
+		fiberLogger.WriteLogToDisk()
+
+		done <- true
+	}()
+
+	<-done
+	log.Println("Shutting down...")
 }

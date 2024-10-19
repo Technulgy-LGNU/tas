@@ -5,7 +5,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"log"
 	"os"
-	"os/signal"
 	"sync"
 	"time"
 )
@@ -52,28 +51,22 @@ func (l *FiberCustomLogger) addToLogBuffer(logMessage string) {
 	defer l.mutex.Unlock()
 
 	logEntry := fmt.Sprintf("[%s] %s\n", time.Now().Format(time.RFC3339), logMessage)
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	log.Print(logEntry)
 	l.logBuffer = append(l.logBuffer, logEntry)
 
 	if len(l.logBuffer) >= maxLogBufferSize {
-		l.writeLogToDisk()
+		l.WriteLogToDisk()
 	}
 }
 
-func (l *FiberCustomLogger) writeLogToDisk() {
+// WriteLogToDisk Writes log to disk, either creates a new file or appends to an existing one
+func (l *FiberCustomLogger) WriteLogToDisk() {
 	// Lock
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
-	// Check if logBuffer is empty
-	if len(l.logBuffer) == 0 {
-		return
-	}
-
 	// Write to disk
-	fileName := fmt.Sprintf("./log/fiber_logs/%s.log", time.Now().Format("2006-1-02"))
-	file, err := os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	fileName := fmt.Sprintf("data/log/fiber_logs/%s.log", time.Now().Format("2006-1-02"))
+	file, err := os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
 		log.SetFlags(log.LstdFlags | log.Lshortfile)
 		log.Printf("Error opening logfile: %v\n", err)
@@ -82,7 +75,7 @@ func (l *FiberCustomLogger) writeLogToDisk() {
 	defer file.Close()
 
 	for _, logEntry := range l.logBuffer {
-		if _, err := file.WriteString(logEntry + "\n"); err != nil {
+		if _, err := file.WriteString(logEntry); err != nil {
 			log.SetFlags(log.LstdFlags | log.Lshortfile)
 			log.Printf("Error writing log to disk: %v\n", err)
 			return
@@ -99,20 +92,7 @@ func (l *FiberCustomLogger) StartDailyFlush() {
 	go func() {
 		for {
 			<-ticker.C
-			l.writeLogToDisk()
+			l.WriteLogToDisk()
 		}
-	}()
-}
-
-// HandleShutdown Flush logs to disk on shutdown
-func (l *FiberCustomLogger) HandleShutdown() {
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-	go func() {
-		<-c
-		log.SetFlags(log.LstdFlags | log.Lshortfile)
-		log.Println("Flushing logs to disk before shutdown ...")
-		l.writeLogToDisk()
-		os.Exit(0)
 	}()
 }
