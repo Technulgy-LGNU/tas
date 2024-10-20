@@ -19,9 +19,12 @@ type User struct {
 	Name       string
 	Email      string
 	Password   string
-	Keys       *[]UserKey
+	Birthday   time.Time
+	Gender     string
+	Key        *[]UserKey
 	Perms      Permission
 	Newsletter *[]Newsletter
+	Request    *[]Request
 
 	TeamID *uint64 `gorm:"index"`
 	Team   *Team
@@ -185,22 +188,20 @@ type Order struct {
 	gorm.Model
 	ID uint64 `gorm:"primaryKey"`
 
-	Name    string
-	Orders  []OrderEntry
-	Request []Request
+	Name   string
+	Orders []OrderEntry
 }
 
 type OrderEntry struct {
 	gorm.Model
 	ID uint64 `gorm:"primaryKey"`
 
-	Request Request
-	Name    string
-	Amount  int
-	Price   float32
-	Shop    string
-	Link    string
-	Notes   string
+	Name   string
+	Amount int
+	Price  float32
+	Shop   string
+	Link   string
+	Notes  string
 
 	OrderID uint64 `gorm:"index"`
 	Order   Order
@@ -210,16 +211,15 @@ type Request struct {
 	gorm.Model
 	ID uint64 `gorm:"primaryKey"`
 
-	Requester User
-	Approved  bool
-	Name      string
-	Amount    int
-	Shop      string
-	Link      string
-	Notes     string
+	Approved bool
+	Name     string
+	Amount   int
+	Shop     string
+	Link     string
+	Notes    string
 
-	OrderID uint64 `gorm:"index"`
-	Order   Order
+	UserID uint64 `gorm:"index"`
+	User   User
 }
 
 type RepeatingOrder struct {
@@ -227,6 +227,7 @@ type RepeatingOrder struct {
 	ID uint64 `gorm:"primaryKey"`
 
 	Name string
+	Shop string
 	Link string
 }
 
@@ -348,64 +349,60 @@ func InitDatabase(cfg *config.CFG, db *gorm.DB) error {
 	}
 
 	// Initial Admin user
-	if os.Args[1] == "prod" {
-
-	} else if os.Args[1] == "dev" {
-		type data struct {
-			AdminUserCreated bool `yaml:"AdminUserCreated"`
-		}
-
-		if _, err := os.Stat("data/cache.yaml"); errors.Is(err, os.ErrNotExist) {
-			log.SetFlags(log.LstdFlags | log.Lshortfile)
-			log.Println("Cache file not found, creating ...")
-
-			file, err := os.Create("data/cache.yaml")
-			if err != nil {
-				return errors.New(fmt.Sprintf("error creating file: %v\n", err))
-			}
-			log.Println("Cache file created")
-			defer file.Close()
-
-			_, err = file.Write([]byte("AdminUserCreated: false"))
-			if err != nil {
-				return errors.New(fmt.Sprintf("error writing to file: %v\n", err))
-			}
-		}
-		var d data
-
-		dataFile, err := os.Open("data/cache.yaml")
-		if err != nil {
-			return errors.New(fmt.Sprintf("error opening file: %v\n", err))
-		}
-
-		yamlParser := yaml.NewDecoder(dataFile)
-		err = yamlParser.Decode(&d)
-		if err != nil {
-			return errors.New(fmt.Sprintf("error reading file: %v\n", err))
-		}
-
-		if !d.AdminUserCreated {
-			log.Println("Creating admin user ...")
-			var tr = true
-			U := &User{
-				Name:     cfg.User.AdminUserName,
-				Email:    "admin@example.com",
-				Password: cfg.User.AdminPassword,
-				Perms: Permission{
-					Login: &tr,
-					Admin: &tr,
-				},
-			}
-			db.Create(&U)
-			err = changeAdminStatus()
-			if err != nil {
-				return errors.New(fmt.Sprintf("error changing admin status: %v\n", err))
-			}
-			log.Println("Admin user created")
-		}
-	} else {
-		panic("Error: Wrong command line argument")
+	type data struct {
+		AdminUserCreated bool `yaml:"AdminUserCreated"`
 	}
+
+	if _, err := os.Stat("data/cache.yaml"); errors.Is(err, os.ErrNotExist) {
+		log.SetFlags(log.LstdFlags | log.Lshortfile)
+		log.Println("Cache file not found, creating ...")
+
+		file, err := os.Create("data/cache.yaml")
+		if err != nil {
+			return errors.New(fmt.Sprintf("error creating file: %v\n", err))
+		}
+		log.Println("Cache file created")
+		defer file.Close()
+
+		_, err = file.Write([]byte("AdminUserCreated: false"))
+		if err != nil {
+			return errors.New(fmt.Sprintf("error writing to file: %v\n", err))
+		}
+	}
+	var d data
+
+	dataFile, err := os.Open("data/cache.yaml")
+	if err != nil {
+		return errors.New(fmt.Sprintf("error opening file: %v\n", err))
+	}
+
+	yamlParser := yaml.NewDecoder(dataFile)
+	err = yamlParser.Decode(&d)
+	if err != nil {
+		return errors.New(fmt.Sprintf("error reading file: %v\n", err))
+	}
+
+	if !d.AdminUserCreated {
+		log.Println("Creating admin user ...")
+		var tr = true
+		U := &User{
+			Name:     "admin",
+			Email:    "admin@example.com",
+			Password: cfg.User.AdminPassword,
+			Perms: Permission{
+				Login: &tr,
+				Admin: &tr,
+			},
+		}
+		db.Create(&U)
+		err = changeAdminStatus()
+		if err != nil {
+			return errors.New(fmt.Sprintf("error changing admin status: %v\n", err))
+		}
+		log.Println("Admin user created")
+	}
+
+	log.Println("Finished init database")
 	return nil
 }
 
@@ -426,5 +423,7 @@ func changeAdminStatus() error {
 	if err != nil {
 		return errors.New(fmt.Sprintf("error writing to file: %v\n", err))
 	}
+
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	return nil
 }

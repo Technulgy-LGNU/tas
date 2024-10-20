@@ -59,7 +59,6 @@ func (l *GormCustomLogger) addToLogBuffer(level string, logMessage string) {
 
 	logEntry := fmt.Sprintf("[%s] %s: %s\n", time.Now().Format(time.RFC3339), level, logMessage)
 	l.logBuffer = append(l.logBuffer, logEntry)
-	log.Println(len(l.logBuffer))
 
 	if len(l.logBuffer) >= maxLogBufferSize {
 		l.mutex.Unlock()

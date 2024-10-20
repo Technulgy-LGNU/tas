@@ -32,7 +32,7 @@ WORKDIR /app
 
 COPY --from=builder-go /app/main .
 
-COPY --from=builder-npm /web/dist ./public
+COPY --from=builder-npm /web/dist ./web
 
 EXPOSE 80
 

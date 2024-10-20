@@ -17,6 +17,10 @@ import (
 // Currently in Development, look under projects to see the current state
 
 func main() {
+	// Start timer
+	var mst util.MST
+	mst.StartTimer()
+
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	log.Println("Starting T.A.S. ...")
 
@@ -34,14 +38,21 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = database.InitDatabase(CFG, DB)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// Do the initial checks parallel to save start up time
+	go func() {
+		err = database.InitDatabase(CFG, DB)
+		if err != nil {
+			log.Fatal(err)
+		}
+		// Takes the longest to finish, so total startup time is measured here
+		mst.ElapsedTime()
+	}()
 
 	// Util
 
 	// Routines
+	util.DeleteOldSessions(DB)
+	util.DeleteSoftDeletedUserKeys(DB)
 
 	// FiberLogger
 	fiberLogger := &cLog.FiberCustomLogger{}
@@ -53,22 +64,20 @@ func main() {
 	}
 
 	// Handle shutdown (Not working, don't know why ...)
+	done := make(chan bool, 1)
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGHUP, syscall.SIGKILL)
 
-	done := make(chan bool, 1)
+	sig := <-sigs
+	log.Println()
+	log.Printf("Caught signal %s; exiting...", sig)
 
-	go func() {
-		sig := <-sigs
-		log.Println()
-		log.Printf("Caught signal %s; exiting...", sig)
+	gormLogger.WriteLogToDisk()
+	fiberLogger.WriteLogToDisk()
 
-		gormLogger.WriteLogToDisk()
-		fiberLogger.WriteLogToDisk()
-
-		done <- true
-	}()
+	done <- true
 
 	<-done
 	log.Println("Shutting down...")
+	os.Exit(0)
 }

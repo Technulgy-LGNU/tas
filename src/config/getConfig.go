@@ -17,13 +17,13 @@ type CFG struct {
 	} `yaml:"Database"`
 
 	User struct {
-		AdminUserName string `yaml:"InitialAdminUser"`
 		AdminPassword string `yaml:"InitialAdminPassword"`
 	} `yaml:"User"`
 
 	Website struct {
-		Host string `yaml:"Host"`
-		Port int    `yaml:"Port"`
+		Host  string `yaml:"Host"`
+		Port  int    `yaml:"Port"`
+		Files string
 	} `yaml:"Website"`
 
 	Email struct {
@@ -39,7 +39,12 @@ type CFG struct {
 	} `yaml:"Nextcloud"`
 }
 
+// GetConfig
+// For dev purposes, you can run the app as a compiled go file, but this setup needs additional options
+// these can be configured in the config.yaml.
+// In the production setup, these additional values are hardcoded in the program
 func GetConfig() *CFG {
+	// I think, this is all self-explanatory, so no further comments, on questions open a GitHub Ticket with the questions tag
 	if os.Args[1] == "prod" {
 		var c CFG
 		c.DB.Host = "db"
@@ -48,10 +53,10 @@ func GetConfig() *CFG {
 		c.DB.Password = os.Getenv("DBPassword")
 		c.DB.Database = os.Getenv("Database")
 		c.DB.TimeZone = os.Getenv("TimeZone")
-		c.User.AdminUserName = os.Getenv("InitialAdminUser")
 		c.User.AdminPassword = os.Getenv("InitialAdminPassword")
 		c.Website.Host = "0.0.0.0"
 		c.Website.Port = 80
+		c.Website.Files = "web/"
 		c.Email.Host = os.Getenv("EmailHost")
 		c.Email.ApiKey = os.Getenv("EmailApiKey")
 		c.Email.SenderEmail = os.Getenv("EmailSenderEmail")
@@ -77,6 +82,7 @@ func GetConfig() *CFG {
 			log.Fatalf("Error readeing config file: %d\n", err)
 		}
 
+		config.Website.Files = "web/dist/"
 		return &config
 	} else {
 		panic("Error: Wrong command line argument")

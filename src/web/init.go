@@ -79,6 +79,10 @@ func InitWeb(logger *cLog.FiberCustomLogger, cfg *config.CFG, db *gorm.DB) error
 	}
 	// Websocket
 	api.Get("/ws", websocket.New(a.WebsocketConnection))
+	// Login
+	api.Post("/login", a.login)                      // <- Email&Password, returns new session token
+	api.Delete("/logout", a.logout)                  // <- Token, deletes session
+	api.Get("/check-login", a.checkIfUserIsLoggedIn) // -> Bool&Perms, checks if the session is valid and returns the users permissions
 	// Users
 
 	// Website
@@ -92,9 +96,9 @@ func InitWeb(logger *cLog.FiberCustomLogger, cfg *config.CFG, db *gorm.DB) error
 	// Sponsors
 
 	// Frontend
-	app.Static("/", "./public")
+	app.Static("/", cfg.Website.Files)
 	// CDN
-	app.Static("/cdn", "./var/lib/tas/data/cdn")
+	// app.Static("/cdn", "./data/cdn")
 
 	// Start fiber
 	log.Println("Started T.A.S. V1")

@@ -8,7 +8,7 @@ import (
 func CheckDirs() {
 	// data dir
 	if _, err := os.Stat("data/"); os.IsNotExist(err) {
-		_, err := os.Create("data/")
+		err := os.Mkdir("data", 0777)
 		if err != nil {
 			log.SetFlags(log.LstdFlags | log.Lshortfile)
 			log.Fatalf("Error creating data dir: %v", err)
@@ -17,14 +17,14 @@ func CheckDirs() {
 
 	// log dir
 	if _, err := os.Stat("data/gorm_logs"); os.IsNotExist(err) {
-		_, err := os.Create("data/gorm_logs")
+		err := os.Mkdir("data/gorm_logs", 0777)
 		if err != nil {
 			log.SetFlags(log.LstdFlags | log.Lshortfile)
 			log.Fatalf("Error creating data/gorm_logs dir: %v", err)
 		}
 	}
 	if _, err := os.Stat("data/fiber_logs"); os.IsNotExist(err) {
-		_, err := os.Create("data/fiber_logs")
+		err := os.Mkdir("data/fiber_logs", 0777)
 		if err != nil {
 			log.SetFlags(log.LstdFlags | log.Lshortfile)
 			log.Fatalf("Error creating data dir: %v", err)
@@ -33,7 +33,7 @@ func CheckDirs() {
 
 	// cdn dir
 	if _, err := os.Stat("data/cdn"); os.IsNotExist(err) {
-		_, err := os.Create("data/cdn")
+		err := os.Mkdir("data/cdn", 0777)
 		if err != nil {
 			log.SetFlags(log.LstdFlags | log.Lshortfile)
 			log.Fatalf("Error creating data/cdn dir: %v", err)
