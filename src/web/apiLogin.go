@@ -50,7 +50,7 @@ func (a *API) login(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fmt.Sprintf("Error generating session token: %v\n", err))
 	}
-	userKey := database.UserKey{
+	userKey := database.BrowserTokens{
 		DeviceId: data.Id,
 		Key:      sessionToken,
 		UserID:   user.ID,
@@ -84,7 +84,7 @@ func (a *API) logout(c *fiber.Ctx) error {
 		data = struct { // Incoming Data
 			ID string `json:"id"`
 		}{}
-		user []database.UserKey
+		user []database.BrowserTokens
 	)
 	// Parsing body
 	if err := c.BodyParser(&data); err != nil {
@@ -114,7 +114,7 @@ func (a *API) checkIfUserIsLoggedIn(c *fiber.Ctx) error {
 			ID  string `json:"id"`
 			Key string `json:"key"`
 		}{}
-		user  database.UserKey
+		user  database.BrowserTokens
 		perms database.Permission
 	)
 	// Parsing body
