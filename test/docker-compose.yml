@@ -2,41 +2,48 @@
 # COPY THE DOCKER COMPOSE STUFF FROM THE README FOR PRODUCTION
 
 services:
-  app:
+  tas-backend:
     build:
       context: .
       dockerfile: ../DOCKERFILE
-    restart: always
+    ports:
+      - "3001:3001" # tas-backend
+      - "3002:3003" # tas-cdn
+      - "3003:3004" # tas-link
     depends_on:
       - db
-    environment:
-      - DBUser=tas
-      - DBPassword=tasPassword
-      - Database=tas
-      - TimeZone=Europe/Berlin
-      - InitialAdminUser=admin
-      - InitialAdminPassword=1234
-      - EmailHost=mail.technulgy.com
-      - EmailApiKey=mhm
-      - SenderEmail=noreply@tghd.email
-      - SenderEmailPassword=2w@#i231&67D%9h$2T#6&z#cO@6@!!&0
-      - NCHost=nc.technulgy.com
-      - NCApiKey=mhm
-    ports:
-      - "80:80"
     volumes:
-      - tas-data:/var/lib/tas/data
+      - tas-data:/var/lib/tas/
+      - ./config:/var/lib/tas/config
+    restart: unless-stopped
 
-  db:
+  tas-frontend:
+    image: nginx:latest
+    ports:
+      - "3002:80" # tas-frontend
+    volumes:
+      - ./config/tas-frontend.conf:/etc/nginx/conf.d/default.conf
+      - ./tas-frontend/:/usr/share/nginx/html
+
+  website:
+    image: nginx:latest
+    ports:
+      - "3000:80" # website
+    volumes:
+      - ./config/website.conf:/etc/nginx/conf.d/default.conf
+      - ./website/:/usr/share/nginx/html
+
+
+  psql-db:
     image: postgres:16-alpine
-    restart: always
+    ports:
+      - "5432:5432"
     environment:
       - POSTGRES_USER=tas
       - POSTGRES_PASSWORD=tasPassword
-    ports:
-      - "5432:5432"
     volumes:
       - psql-data:/data
+    restart: unless-stopped
 
 volumes:
   psql-data:

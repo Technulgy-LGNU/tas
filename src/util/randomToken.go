@@ -13,3 +13,11 @@ func GenerateSessionToken() (string, error) {
 	}
 	return hex.EncodeToString(bytes), nil
 }
+
+func GenerateResetCode() (string, error) {
+	bytes := make([]byte, 3) // 32 bytes = 64 characters when hex-encodedW
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(bytes), nil
+}

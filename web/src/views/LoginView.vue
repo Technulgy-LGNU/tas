@@ -8,6 +8,33 @@ import Header from '@/components/Header.vue'
 import PasswordReset from '@/components/PasswordReset.vue'
 import router from '@/router/index.js'
 
+// Checks if user is logged in
+if (Cookies.get('authToken') !== null) {
+  try {
+    await axios
+      .post('http://localhost:8080/api/checklogin', {
+        id: Cookies.get('deviceID'),
+        key: Cookies.get('authToken'),
+      })
+      .then(res => {
+        if (res.status === 200) {
+          Cookies.set('perms', res.data.perms)
+          router.push('/')
+        }
+      })
+      .catch(error => {
+        if (error.response.status === 403) {
+          Cookies.set('authToken', null)
+          Cookies.set('perms', null)
+        } else {
+          console.log(error.response.status)
+        }
+      })
+  } catch (error) {
+    console.log(error)
+  }
+}
+
 const infoPopUp = ref(false);
 const infoMessage = ref('');
 
@@ -17,20 +44,21 @@ const loginPassword = ref('');
 const login = async () => {
   try {
     await axios
-      .post('api/login', {
+      .post(':8080/api/login', {
         email: loginEmail.value,
         password: loginPassword.value,
-        device: localStorage.getItem('id'),
+        device: Cookies.get('deviceID'),
       })
       .then(res => {
         if (res.status === 200) {
           Cookies.set('authToken', res.data.key);
-          Cookies.set('perms', res.data.perms)
-          console.log(res.data.perms)
+          Cookies.set('perms', res.data.perms);
+          console.log(res.data.perms);
           router.push('/');
         }
       })
       .catch(error => {
+        router.push("/login");
         console.log(error);
       })
   } catch (error) {
@@ -80,7 +108,8 @@ const openResetPasswordPopUp = async () => {
           <button type="submit" class="btn-primary w-100">Login</button>
         </form>
         <div class="footer-links" style="margin-top: 20px">
-          <a href="https://technulgy.com/" target="_blank" class="btn-link">Website</a>
+          <!-- <a href="https://technulgy.com/" target="_blank" class="btn-link">Website</a> -->
+          <router-link to="passwordreset">Website</router-link>
           <button @click="openResetPasswordPopUp" class="btn-link">Reset Password</button>
         </div>
       </div>

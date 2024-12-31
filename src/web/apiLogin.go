@@ -121,7 +121,6 @@ func (a *API) checkIfUserIsLoggedIn(c *fiber.Ctx) error {
 	if err := c.BodyParser(&data); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fmt.Sprintf("Error parsing request body: %v\n", err))
 	}
-
 	// Finding the user
 	result := a.DB.Find(&user).Where("device_id = ? AND  key = ?", data.ID, data.Key)
 	if result.Error != nil {

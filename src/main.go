@@ -7,7 +7,7 @@ import (
 	"syscall"
 	"tas/src/config"
 	"tas/src/database"
-	cLog "tas/src/log"
+	clog "tas/src/log"
 	"tas/src/util"
 	"tas/src/web"
 )
@@ -17,50 +17,54 @@ import (
 // Currently in Development, look under projects to see the current state
 
 func main() {
+	// Logger
+	logger := clog.Logger{}
+	logger.SetLogLevel("DEBUG")
+	gormLogger := clog.GormLogger{
+		L: &logger,
+	}
+	fiberLogger := clog.FiberLogger{
+		L: &logger,
+	}
+
 	// Start timer
 	var mst util.MST
 	mst.StartTimer()
 
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	log.Println("Starting T.A.S. ...")
+	log.Println("Starting TAS ...")
 
-	// CheckDirs (If not, error on log write)
-	util.CheckDirs()
+	// Checks
+	config.CheckConfig(&logger)
+	util.CheckDirs(&logger)
 
 	// Config
 	var CFG = config.GetConfig()
+	logger.SetLogLevel(CFG.LogLevel)
 
-	// GormLogger
-	gormLogger := &cLog.GormCustomLogger{}
-	gormLogger.StartDailyFlush()
 	// Database
-	DB, err := database.GetDatabase(gormLogger, CFG)
+	DB, err := database.GetDatabase(&gormLogger, CFG)
 	if err != nil {
-		log.Fatal(err)
+		logger.LogEvent(err.Error(), "FATAL")
 	}
 	// Do the initial checks parallel to save start up time
 	go func() {
-		err = database.InitDatabase(CFG, DB)
+		err = database.InitDatabase(&logger, CFG, DB)
 		if err != nil {
-			log.Fatal(err)
+			logger.LogEvent(err.Error(), "FATAL")
 		}
 		// Takes the longest to finish, so total startup time is measured here
 		mst.ElapsedTime()
 	}()
 
-	// Util
-
 	// Routines
 	util.DeleteOldSessions(DB)
 	util.DeleteSoftDeletedUserKeys(DB)
 
-	// FiberLogger
-	fiberLogger := &cLog.FiberCustomLogger{}
-	fiberLogger.StartDailyFlush()
 	// Web
-	err = web.InitWeb(fiberLogger, CFG, DB)
+	err = web.InitWeb(&fiberLogger, &logger, CFG, DB)
 	if err != nil {
-		log.Fatal(err)
+		logger.LogEvent(err.Error(), "FATAL")
 	}
 
 	// Handle shutdown (Not working, don't know why ...)
@@ -71,9 +75,6 @@ func main() {
 	sig := <-sigs
 	log.Println()
 	log.Printf("Caught signal %s; exiting...", sig)
-
-	gormLogger.WriteLogToDisk()
-	fiberLogger.WriteLogToDisk()
 
 	done <- true
 

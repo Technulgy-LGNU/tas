@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 	"tas/src/config"
+	cLog "tas/src/log"
 	"time"
 )
 
@@ -16,21 +17,20 @@ type User struct {
 	gorm.Model
 	ID uint64 `gorm:"primaryKey"`
 
-	Name       string
-	Email      string
-	Password   string
-	Birthday   time.Time
-	Gender     string
-	Key        *[]UserKey
-	Perms      Permission
-	Newsletter *[]Newsletter
-	Request    *[]Request
+	Name     string
+	Email    string
+	Password string
+	Birthday time.Time
+	Gender   string
+	Tokens   *[]BrowserTokens
+	Perms    Permission
+	Request  *[]Request
 
 	TeamID *uint64 `gorm:"index"`
 	Team   *Team
 }
 
-type UserKey struct {
+type BrowserTokens struct {
 	gorm.Model
 	ID uint64 `gorm:"primaryKey"`
 
@@ -61,6 +61,14 @@ type Permission struct {
 
 	UserID uint64 `gorm:"index"`
 	User   *User
+}
+
+type ResetPassword struct {
+	gorm.Model
+	ID uint64 `gorm:"primaryKey"`
+
+	Email string
+	Code  string
 }
 
 type Team struct {
@@ -134,12 +142,9 @@ type Newsletter struct {
 	gorm.Model
 	ID uint64 `gorm:"primaryKey"`
 
-	Name        string
-	Followers   *[]Follower
-	Newsletters *[]News
-
-	UserID uint64 `gorm:"index"`
-	User   User
+	Name      string
+	Followers *[]Follower
+	Letters   *[]News
 }
 
 type Follower struct {
@@ -226,9 +231,10 @@ type RepeatingOrder struct {
 	gorm.Model
 	ID uint64 `gorm:"primaryKey"`
 
-	Name string
-	Shop string
-	Link string
+	Name  string
+	Price float32
+	Shop  string
+	Link  string
 }
 
 type Post struct {
@@ -249,7 +255,7 @@ type File struct {
 	ShortLink string
 }
 
-func InitDatabase(cfg *config.CFG, db *gorm.DB) error {
+func InitDatabase(Logger *cLog.Logger, cfg *config.CFG, db *gorm.DB) error {
 	var err error
 
 	// Auto migrating
@@ -258,12 +264,17 @@ func InitDatabase(cfg *config.CFG, db *gorm.DB) error {
 		return errors.New(fmt.Sprintf("error migrating table: %v\n", err))
 	}
 
-	err = db.AutoMigrate(&UserKey{})
+	err = db.AutoMigrate(&BrowserTokens{})
 	if err != nil {
 		return errors.New(fmt.Sprintf("error migrating table: %v\n", err))
 	}
 
 	err = db.AutoMigrate(&Permission{})
+	if err != nil {
+		return errors.New(fmt.Sprintf("error migrating table: %v\n", err))
+	}
+
+	err = db.AutoMigrate(&ResetPassword{})
 	if err != nil {
 		return errors.New(fmt.Sprintf("error migrating table: %v\n", err))
 	}
@@ -354,8 +365,7 @@ func InitDatabase(cfg *config.CFG, db *gorm.DB) error {
 	}
 
 	if _, err := os.Stat("data/cache.yaml"); errors.Is(err, os.ErrNotExist) {
-		log.SetFlags(log.LstdFlags | log.Lshortfile)
-		log.Println("Cache file not found, creating ...")
+		Logger.LogEvent("Cache file not found, creating new one, ...", "INFO")
 
 		file, err := os.Create("data/cache.yaml")
 		if err != nil {
@@ -399,10 +409,10 @@ func InitDatabase(cfg *config.CFG, db *gorm.DB) error {
 		if err != nil {
 			return errors.New(fmt.Sprintf("error changing admin status: %v\n", err))
 		}
-		log.Println("Admin user created")
+		Logger.AddToLogBuffer("Admin user created", "INFO")
 	}
 
-	log.Println("Finished init database")
+	Logger.LogEvent("Database initialized", "INFO")
 	return nil
 }
 

@@ -1,6 +1,7 @@
+# Build the Go application
 FROM golang:1.23.2-alpine AS builder-go
 
-WORKDIR /app
+WORKDIR /etc/tas
 
 COPY go.mod go.sum ./
 
@@ -10,20 +11,7 @@ COPY src/ ./src/
 
 RUN go build ./src/main.go
 
-
-
-FROM node:current-alpine AS builder-npm
-
-WORKDIR /web
-
-COPY web/ ./
-
-RUN npm install
-
-RUN npm run build
-
-
-
+# Final image
 FROM alpine:latest
 
 RUN apk --no-cache add ca-certificates
@@ -31,8 +19,6 @@ RUN apk --no-cache add ca-certificates
 WORKDIR /app
 
 COPY --from=builder-go /app/main .
-
-COPY --from=builder-npm /web/dist ./web
 
 EXPOSE 80
 

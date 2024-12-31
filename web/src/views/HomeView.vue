@@ -7,20 +7,6 @@ const token = Cookies.get('authToken')
 if (token === null) {
   router.push('/login')
 }
-checkLogin()
-
-async function checkLogin() {
-  try {
-    const response = await axios.get('api/checkLogin', {
-      headers: {
-        Authorization: 'Bearer ' + token,
-      }
-    })
-    console.log(response.data)
-  } catch (error) {
-    console.log(error)
-  }
-}
 
 </script>
 
