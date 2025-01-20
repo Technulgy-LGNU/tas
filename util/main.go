@@ -14,7 +14,7 @@ func main() {
 	log.SetFlags(log.LstdFlags & log.Lshortfile)
 	var (
 		urls = map[string]string{
-			"localhost:3001": "api.technulgy.com",
+			"http://localhost:3001": "https://api.technulgy.com",
 		}
 
 		err error

@@ -12,7 +12,7 @@ import router from '@/router/index.js'
 if (Cookies.get('authToken') !== null) {
   try {
     await axios
-      .post('http://localhost:8080/api/checklogin', {
+      .post('http://localhost:3001/api/checklogin', {
         id: Cookies.get('deviceID'),
         key: Cookies.get('authToken'),
       })
@@ -44,7 +44,7 @@ const loginPassword = ref('');
 const login = async () => {
   try {
     await axios
-      .post(':8080/api/login', {
+      .post('http://localhost:3001/api/login', {
         email: loginEmail.value,
         password: loginPassword.value,
         device: Cookies.get('deviceID'),

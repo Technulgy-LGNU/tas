@@ -11,7 +11,7 @@ const rNewPassword = ref("");
 const resetPassword = async () => {
   try {
     await axios
-      .post('api/resetPassword/code', {
+      .post('http://localhost:3001/api/resetPassword/code', {
         code: code.value,
         newpassword: newPassword.value,
         rnewpassword: rNewPassword.value,
