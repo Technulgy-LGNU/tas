@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"gorm.io/gorm"
-	"tas/src/config"
 	cLog "tas/src/log"
 	"time"
 )
@@ -223,7 +222,7 @@ type RepeatingOrder struct {
 	Link  string
 }
 
-func InitDatabase(Logger *cLog.Logger, cfg *config.CFG, db *gorm.DB) error {
+func InitDatabase(Logger *cLog.Logger, db *gorm.DB) error {
 	var err error
 
 	// Auto migrating
