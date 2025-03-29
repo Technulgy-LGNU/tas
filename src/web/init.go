@@ -1,8 +1,6 @@
 package web
 
 import (
-	"errors"
-	"fmt"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/healthcheck"
@@ -16,20 +14,29 @@ import (
 )
 
 type API struct {
+	Logger  *cLog.Logger
 	DB      *gorm.DB
+	CFG     *config.CFG
 	Clients map[*websocket.Conn]bool
 }
 
-func InitWeb(logger *cLog.FiberCustomLogger, cfg *config.CFG, db *gorm.DB) error {
+func InitWeb(logger *cLog.FiberLogger, mainLog *cLog.Logger, cfg *config.CFG, db *gorm.DB) error {
 	var (
-		addr = fmt.Sprintf("%s:%d", cfg.Website.Host, cfg.Website.Port)
+		addrTASBackend = "0.0.0.0:3001"
+		addrTASLinks   = "0.0.0.0:3002"
 
 		err error
 
-		// Fiber App
-		app = fiber.New(fiber.Config{
-			ServerHeader: "tas:fiber",
-			AppName:      "tas",
+		// Backend app
+		tasBackend = fiber.New(fiber.Config{
+			ServerHeader: "tas_backend:fiber",
+			AppName:      "tas_backend",
+		})
+
+		// Links app
+		links = fiber.New(fiber.Config{
+			ServerHeader: "tas_links:fiber",
+			AppName:      "tas_links",
 		})
 
 		c = cors.New(cors.Config{
@@ -53,32 +60,49 @@ func InitWeb(logger *cLog.FiberCustomLogger, cfg *config.CFG, db *gorm.DB) error
 
 		// Monitor
 		mon = monitor.New(monitor.Config{
-			Title: "ShowMaster Monitor",
+			Title: "TAS Monitor",
 		})
 	)
 
 	// Internal tools
-	app.Use(c)                                          // Cors middleware
-	app.Use(logger.FiberLoggerMiddleware())             // Logger
-	app.Use(healthcheck.New(healthcheck.ConfigDefault)) // Healthcheck
-	app.Use("/ws", func(c *fiber.Ctx) error {           // Websocket middleware
+	// TAS-Backend
+	tasBackend.Use(c)                                          // Cors middleware
+	tasBackend.Use(logger.FiberLoggerMiddleware())             // Logger   // Logger
+	tasBackend.Use(healthcheck.New(healthcheck.ConfigDefault)) // Healthcheck
+	tasBackend.Use("/ws", func(c *fiber.Ctx) error {           // Websocket middleware
 		if websocket.IsWebSocketUpgrade(c) {
 			c.Locals("allowed", true)
 			return c.Next()
 		}
 		return fiber.ErrUpgradeRequired
 	})
-	app.Get("/monitor", mon) // Monitor
+	tasBackend.Get("/monitor", mon)                // Monitor
+	tasBackend.Get("/healthcheck", getHealthcheck) // Healthcheck
+
+	// TAS-Links
+	links.Use(c)
+	links.Use(logger.FiberLoggerMiddleware())
+	links.Use(healthcheck.New(healthcheck.ConfigDefault))
+	links.Get("/monitor", mon)
 
 	// API
 	api := fiber.New()
-	app.Mount("/api", api)
+	tasBackend.Mount("/api", api)
 	a := API{
+		Logger:  mainLog,
 		DB:      db,
+		CFG:     cfg,
 		Clients: make(map[*websocket.Conn]bool),
 	}
+	// Healthcheck
 	// Websocket
 	api.Get("/ws", websocket.New(a.WebsocketConnection))
+	// Login / Password reset
+	api.Post("/login", a.login)                          // <- Email&Password, returns new session token
+	api.Delete("/logout", a.logout)                      // <- Token, deletes session
+	api.Post("/checkLogin", a.checkIfUserIsLoggedIn)     // -> Bool&Perms, checks if the session is valid and returns the users permissions
+	api.Post("/resetPassword", a.resetPassword)          // <- Email, checks if email exists, if yes, sends an email with a code to reset your password and a link to the specific site
+	api.Post("/resetPassword/code", a.resetPasswordCode) // <- Code&NewPassword, checks if the code is still valid, if yes, changes the password to the one provided and returns 200
 	// Users
 
 	// Website
@@ -91,16 +115,25 @@ func InitWeb(logger *cLog.FiberCustomLogger, cfg *config.CFG, db *gorm.DB) error
 
 	// Sponsors
 
-	// Frontend
-	app.Static("/", "./public")
-	// CDN
-	app.Static("/cdn", "./var/lib/tas/data/cdn")
+	// Start TAS-Backend
+	go func() {
+		log.Println("Started T.A.S. Backend V1")
+		err = tasBackend.Listen(addrTASBackend)
+		if err != nil {
+			log.SetFlags(log.LstdFlags | log.Lshortfile)
+			log.Fatalf("Error starting webserver: %v\n", err)
+		}
+	}()
 
-	// Start fiber
-	log.Println("Started T.A.S. V1")
-	err = app.Listen(addr)
-	if err != nil {
-		return errors.New(fmt.Sprintf("error starting web server %s\n", err))
-	}
+	// Start TAS-Links
+	go func() {
+		log.Println("Started T.A.S. Links V1")
+		err = links.Listen(addrTASLinks)
+		if err != nil {
+			log.SetFlags(log.LstdFlags | log.Lshortfile)
+			log.Fatalf("Error starting webserver: %v\n", err)
+		}
+	}()
+
 	return nil
 }

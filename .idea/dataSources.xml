@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="RP-1" uuid="1aa05593-1618-416c-a9b9-a288da5d0e4b">
+    <data-source source="LOCAL" name="psql-pve" uuid="28a4ceae-ab6d-4592-914e-6287bd23b904">
       <driver-ref>postgresql</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.postgresql.Driver</jdbc-driver>
-      <jdbc-url>jdbc:postgresql://192.168.178.137:5432/postgres</jdbc-url>
+      <jdbc-url>jdbc:postgresql://192.168.178.102:5432/tas_db</jdbc-url>
       <jdbc-additional-properties>
         <property name="com.intellij.clouds.kubernetes.db.host.port" />
         <property name="com.intellij.clouds.kubernetes.db.enabled" value="false" />

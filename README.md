@@ -36,7 +36,8 @@ services:
       - DBPassword=tasPassword    
       - Database=tas
       - TimeZone=Europe/Berlin 
-      - InitialAdminUser=contact@technulgy.com 
+      # The initial admin user is "admin" and the email "admin@example.com"
+      # Please change immediately 
       - InitialAdminPassword=1234     
       - EmailHost=mail.technulgy.com 
       - EmailApiKey=mhm

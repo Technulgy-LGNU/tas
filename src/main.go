@@ -2,12 +2,9 @@ package main
 
 import (
 	"log"
-	"os"
-	"os/signal"
-	"syscall"
 	"tas/src/config"
 	"tas/src/database"
-	cLog "tas/src/log"
+	clog "tas/src/log"
 	"tas/src/util"
 	"tas/src/web"
 )
@@ -17,58 +14,50 @@ import (
 // Currently in Development, look under projects to see the current state
 
 func main() {
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	log.Println("Starting T.A.S. ...")
+	// Logger
+	logger := clog.Logger{}
+	gormLogger := clog.GormLogger{
+		L: &logger,
+	}
+	fiberLogger := clog.FiberLogger{
+		L: &logger,
+	}
 
-	// CheckDirs (If not, error on log write)
-	util.CheckDirs()
+	// Start timer
+	var mst util.MST
+	mst.StartTimer()
+
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+	log.Println("Starting TAS ...")
+
+	// Checks
+	config.CheckConfig(&logger)
 
 	// Config
 	var CFG = config.GetConfig()
 
-	// GormLogger
-	gormLogger := &cLog.GormCustomLogger{}
-	gormLogger.StartDailyFlush()
 	// Database
-	DB, err := database.GetDatabase(gormLogger, CFG)
+	DB, err := database.GetDatabase(&gormLogger, CFG)
 	if err != nil {
-		log.Fatal(err)
+		logger.LogEvent(err.Error(), "FATAL")
 	}
-	err = database.InitDatabase(CFG, DB)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Util
-
-	// Routines
-
-	// FiberLogger
-	fiberLogger := &cLog.FiberCustomLogger{}
-	fiberLogger.StartDailyFlush()
-	// Web
-	err = web.InitWeb(fiberLogger, CFG, DB)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Handle shutdown (Not working, don't know why ...)
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGHUP, syscall.SIGKILL)
-
-	done := make(chan bool, 1)
-
+	// Do the initial checks parallel to save start up time
 	go func() {
-		sig := <-sigs
-		log.Println()
-		log.Printf("Caught signal %s; exiting...", sig)
-
-		gormLogger.WriteLogToDisk()
-		fiberLogger.WriteLogToDisk()
-
-		done <- true
+		err = database.InitDatabase(&logger, DB)
+		if err != nil {
+			logger.LogEvent(err.Error(), "FATAL")
+		}
+		// Takes the longest to finish, so total startup time is measured here
+		mst.ElapsedTime()
 	}()
 
-	<-done
-	log.Println("Shutting down...")
+	// Routines
+	util.DeleteOldSessions(DB)
+	util.DeleteSoftDeletedUserKeys(DB)
+
+	// Web
+	err = web.InitWeb(&fiberLogger, &logger, CFG, DB)
+	if err != nil {
+		logger.LogEvent(err.Error(), "FATAL")
+	}
 }

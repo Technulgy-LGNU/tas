@@ -4,6 +4,7 @@ import (
 	"gopkg.in/yaml.v3"
 	"log"
 	"os"
+	"strconv"
 )
 
 type CFG struct {
@@ -16,16 +17,6 @@ type CFG struct {
 		TimeZone string `yaml:"TimeZone"`
 	} `yaml:"Database"`
 
-	User struct {
-		AdminUserName string `yaml:"InitialAdminUser"`
-		AdminPassword string `yaml:"InitialAdminPassword"`
-	} `yaml:"User"`
-
-	Website struct {
-		Host string `yaml:"Host"`
-		Port int    `yaml:"Port"`
-	} `yaml:"Website"`
-
 	Email struct {
 		Host                string `yaml:"Host"`
 		ApiKey              string `yaml:"ApiKey"`
@@ -37,49 +28,56 @@ type CFG struct {
 		Host   string `yaml:"Host"`
 		APIKey string `yaml:"ApiKey"`
 	} `yaml:"Nextcloud"`
+
+	Discord struct {
+		Hook string `yaml:"Hook"`
+	} `yaml:"Discord"`
 }
 
+// GetConfig
+// For dev purposes, you can run the app as a compiled go file, but this setup needs additional options
+// these can be configured in the config.yaml.
+// In the production setup, these additional values are hardcoded in the program
 func GetConfig() *CFG {
+	// I think, this is all self-explanatory, so no further comments, on questions open a GitHub Ticket with the questions tag
+	var (
+		file    string
+		cfgFile *os.File
+		config  CFG
+
+		err error
+	)
+
 	if os.Args[1] == "prod" {
-		var c CFG
-		c.DB.Host = "db"
-		c.DB.Port = 5432
-		c.DB.Username = os.Getenv("DBUser")
-		c.DB.Password = os.Getenv("DBPassword")
-		c.DB.Database = os.Getenv("Database")
-		c.DB.TimeZone = os.Getenv("TimeZone")
-		c.User.AdminUserName = os.Getenv("InitialAdminUser")
-		c.User.AdminPassword = os.Getenv("InitialAdminPassword")
-		c.Website.Host = "0.0.0.0"
-		c.Website.Port = 80
-		c.Email.Host = os.Getenv("EmailHost")
-		c.Email.ApiKey = os.Getenv("EmailApiKey")
-		c.Email.SenderEmail = os.Getenv("EmailSenderEmail")
-		c.Email.SenderEmailPassword = os.Getenv("EmailSenderEmailPassword")
-		c.Nextcloud.Host = os.Getenv("NextcloudHost")
-		c.Nextcloud.APIKey = os.Getenv("NextcloudApiKey")
-
-		return &c
+		config.DB.Host = os.Getenv("DB_HOST")
+		config.DB.Port, _ = strconv.Atoi(os.Getenv("DB_PORT"))
+		config.DB.Username = os.Getenv("DB_USERNAME")
+		config.DB.Password = os.Getenv("DB_PASSWORD")
+		config.DB.Database = os.Getenv("DB_DATABASE")
+		config.DB.TimeZone = os.Getenv("DB_TIMEZONE")
+		config.Email.Host = os.Getenv("Email_HOST")
+		config.Email.ApiKey = os.Getenv("EMAIL_API_KEY")
+		config.Email.SenderEmail = os.Getenv("EMAIL_SENDER_EMAIL")
+		config.Email.SenderEmailPassword = os.Getenv("EMAIL_SENDER_EMAIL_PASSWORD")
+		config.Nextcloud.Host = os.Getenv("NEXTCLOUD_HOST")
+		config.Nextcloud.APIKey = os.Getenv("NEXTCLOUD_API_KEY")
+		config.Discord.Hook = os.Getenv("DISCORD_HOOK")
 	} else if os.Args[1] == "dev" {
-		const file = "config/config.yaml"
-		var config CFG
-
-		cfgFile, err := os.Open(file)
-		if err != nil {
-			log.SetFlags(log.LstdFlags & log.Lshortfile)
-			log.Fatalf("Error readeing config file: %d\n", err)
-		}
-
-		yamlParser := yaml.NewDecoder(cfgFile)
-		err = yamlParser.Decode(&config)
-		if err != nil {
-			log.SetFlags(log.LstdFlags & log.Lshortfile)
-			log.Fatalf("Error readeing config file: %d\n", err)
-		}
-
-		return &config
-	} else {
-		panic("Error: Wrong command line argument")
-		return nil
+		file = "config/config.yaml"
 	}
+
+	cfgFile, err = os.Open(file)
+	if err != nil {
+		log.SetFlags(log.LstdFlags & log.Lshortfile)
+		log.Fatalf("Error readeing config file: %d\n", err)
+	}
+
+	yamlParser := yaml.NewDecoder(cfgFile)
+	err = yamlParser.Decode(&config)
+	if err != nil {
+		log.SetFlags(log.LstdFlags & log.Lshortfile)
+		log.Fatalf("Error readeing config file: %d\n", err)
+	}
+
+	return &config
 }

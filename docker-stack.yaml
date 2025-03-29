@@ -1,0 +1,49 @@
+services:
+  tas-backend:
+    image: "ghcr.io/technulgy-lgnu/tas-backend:${GIT_COMMIT_HASH:-latest}"
+    environment:
+      - "Database_Host=${DB_HOST}"
+      - "Database_Port=${DB_PORT}"
+      - "Database_Username=${DB_USERNAME}"
+      - "Database_Password=${DB_PASSWORD}"
+      - "Database_Database=${DB_DATABASE}"
+      - "Database_TimeZone=${DB_TIMEZONE}"
+      - "Email_Host=${EMAIL_HOST}"
+      - "Email_ApiKey=${EMAIL_API_KEY}"
+      - "Email_SenderEmail=${EMAIL_SENDER_EMAIL}"
+      - "Email_Password=${EMAIL_PASSWORD}"
+      - "Nextcloud_Host=${NEXTCLOUD_HOST}"
+      - "Nextcloud_ApiKey=${NEXTCLOUD_API_KEY}"
+      - "Discord_Hook=${DISCORD_HOOK}"
+    networks:
+      - traefik-nw
+    restart: always
+    healthcheck:
+      test: wget --quiet --tries=1 --spider http://127.0.0.1:3001/healthcheck || exit 1
+      interval: 10s
+      timeout: 1s
+      retries: 3
+      start_period: 10s
+
+    deploy:
+      placement:
+        constraints: [node.role == worker]
+      replicas: 2
+      labels:
+        - "traefik.enable=true"
+        # Tas Backend
+        - "traefik.http.routers.tas-backend.rule=Host(`api.tas.technulgy.com`)"
+        - "traefik.http.routers.tas-backend.entrypoints=websecure"
+        - "traefik.http.services.tas-backend.loadbalancer.server.port=3001"
+        - "traefik.http.routers.tas-backend.tls=true"
+        - "traefik.http.routers.tas-backend.tls.certresolver=cfACME"
+        # Tas Links
+        - "traefik.http.routers.tas-links.rule=Host(`links.technulgy.com`)"
+        - "traefik.http.routers.tas-links.entrypoints=websecure"
+        - "traefik.http.services.tas-links.loadbalancer.server.port=3002"
+        - "traefik.http.routers.tas-links.tls=true"
+        - "traefik.http.routers.tas-links.tls.certresolver=cfACME"
+
+networks:
+  traefik-nw:
+    external: true
