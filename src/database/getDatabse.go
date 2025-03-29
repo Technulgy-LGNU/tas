@@ -16,7 +16,8 @@ func GetDatabase(log *cLog.GormLogger, cfg *config.CFG) (*gorm.DB, error) {
 			cfg.DB.Username,
 			cfg.DB.Database,
 			cfg.DB.Password,
-			cfg.DB.TimeZone)
+			cfg.DB.TimeZone,
+		)
 	)
 
 	// Open connection to database

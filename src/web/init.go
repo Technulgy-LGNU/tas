@@ -22,9 +22,8 @@ type API struct {
 
 func InitWeb(logger *cLog.FiberLogger, mainLog *cLog.Logger, cfg *config.CFG, db *gorm.DB) error {
 	var (
-		addrTASBackend = "0.0.0.0:3001" // Tas Frontend is on 3002 and Website on 3000
-		addrTASCDN     = "0.0.0.0:3003"
-		addrTASLinks   = "0.0.0.0:3004"
+		addrTASBackend = "0.0.0.0:3001"
+		addrTASLinks   = "0.0.0.0:3002"
 
 		err error
 
@@ -32,12 +31,6 @@ func InitWeb(logger *cLog.FiberLogger, mainLog *cLog.Logger, cfg *config.CFG, db
 		tasBackend = fiber.New(fiber.Config{
 			ServerHeader: "tas_backend:fiber",
 			AppName:      "tas_backend",
-		})
-
-		// CDN app
-		cdn = fiber.New(fiber.Config{
-			ServerHeader: "tas_cdn:fiber",
-			AppName:      "tas_cdn",
 		})
 
 		// Links app
@@ -48,15 +41,7 @@ func InitWeb(logger *cLog.FiberLogger, mainLog *cLog.Logger, cfg *config.CFG, db
 
 		c = cors.New(cors.Config{
 			AllowOrigins: strings.Join([]string{
-				"https://technulgy.com",
-				"https://tas.technulgy.com",
-				"https://cdn.technulgy.com",
-				"https://links.technulgy.com",
-				"http://localhost:3000",
-				"http://localhost:3001",
-				"http://localhost:3002",
-				"http://localhost:3003",
-				"http://localhost:3004",
+				"*",
 			}, ","),
 
 			AllowMethods: strings.Join([]string{
@@ -68,17 +53,9 @@ func InitWeb(logger *cLog.FiberLogger, mainLog *cLog.Logger, cfg *config.CFG, db
 
 			AllowHeaders: strings.Join([]string{
 				"application/json",
-				"text/html",
-				"text/plain",
-				"text/css",
-				"text/javascript",
-				"application/javascript",
-				"application/x-javascript",
-				"application/ecmascript",
-				"application/x-ecmascript",
 			}, ","),
 
-			AllowCredentials: true,
+			AllowCredentials: false,
 		})
 
 		// Monitor
@@ -99,14 +76,8 @@ func InitWeb(logger *cLog.FiberLogger, mainLog *cLog.Logger, cfg *config.CFG, db
 		}
 		return fiber.ErrUpgradeRequired
 	})
-	tasBackend.Get("/monitor", mon) // Monitor
-
-	// TAS-CDN
-	cdn.Use(c)
-	cdn.Use(logger.FiberLoggerMiddleware())
-	cdn.Use(healthcheck.New(healthcheck.ConfigDefault))
-	cdn.Get("/monitor", mon)
-	// Technulgy Admin Software: Website
+	tasBackend.Get("/monitor", mon)                // Monitor
+	tasBackend.Get("/healthcheck", getHealthcheck) // Healthcheck
 
 	// TAS-Links
 	links.Use(c)
@@ -123,6 +94,7 @@ func InitWeb(logger *cLog.FiberLogger, mainLog *cLog.Logger, cfg *config.CFG, db
 		CFG:     cfg,
 		Clients: make(map[*websocket.Conn]bool),
 	}
+	// Healthcheck
 	// Websocket
 	api.Get("/ws", websocket.New(a.WebsocketConnection))
 	// Login / Password reset
@@ -147,16 +119,6 @@ func InitWeb(logger *cLog.FiberLogger, mainLog *cLog.Logger, cfg *config.CFG, db
 	go func() {
 		log.Println("Started T.A.S. Backend V1")
 		err = tasBackend.Listen(addrTASBackend)
-		if err != nil {
-			log.SetFlags(log.LstdFlags | log.Lshortfile)
-			log.Fatalf("Error starting webserver: %v\n", err)
-		}
-	}()
-
-	// Start TAS-CDN
-	go func() {
-		log.Println("Started T.A.S. CDN V1")
-		err = cdn.Listen(addrTASCDN)
 		if err != nil {
 			log.SetFlags(log.LstdFlags | log.Lshortfile)
 			log.Fatalf("Error starting webserver: %v\n", err)

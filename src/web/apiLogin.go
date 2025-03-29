@@ -17,15 +17,15 @@ func (a *API) login(c *fiber.Ctx) error {
 		}{}
 		returnData = struct { // Permissions and the session key will be returned to the client
 			Perms struct {
-				Login      *bool `json:"login"`
-				Admin      *bool `json:"admin"`
-				Members    *int  `json:"members"`
-				Teams      *int  `json:"teams"`
-				Events     *int  `json:"events"`
-				Newsletter *int  `json:"newsletter"`
-				Form       *int  `json:"form"`
-				Website    *int  `json:"website"`
-				Orders     *int  `json:"orders"`
+				Login      bool `json:"login"`
+				Admin      bool `json:"admin"`
+				Members    int  `json:"members"`
+				Teams      int  `json:"teams"`
+				Events     int  `json:"events"`
+				Newsletter int  `json:"newsletter"`
+				Form       int  `json:"form"`
+				Website    int  `json:"website"`
+				Orders     int  `json:"orders"`
 			} `json:"perms"`
 			Key string `json:"key"`
 		}{}

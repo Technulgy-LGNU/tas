@@ -4,11 +4,10 @@ import (
 	"gopkg.in/yaml.v3"
 	"log"
 	"os"
+	"strconv"
 )
 
 type CFG struct {
-	LogLevel string `yaml:"LogLevel"`
-
 	DB struct {
 		Host     string `yaml:"Host"`
 		Port     int    `yaml:"Port"`
@@ -17,10 +16,6 @@ type CFG struct {
 		Database string `yaml:"Database"`
 		TimeZone string `yaml:"TimeZone"`
 	} `yaml:"Database"`
-
-	User struct {
-		AdminPassword string `yaml:"InitialAdminPassword"`
-	} `yaml:"User"`
 
 	Email struct {
 		Host                string `yaml:"Host"`
@@ -50,7 +45,18 @@ func GetConfig() *CFG {
 	)
 
 	if os.Args[1] == "prod" {
-		file = "/var/lib/tas/config/config.yaml"
+		config.DB.Host = os.Getenv("DB_HOST")
+		config.DB.Port, _ = strconv.Atoi(os.Getenv("DB_PORT"))
+		config.DB.Username = os.Getenv("DB_USERNAME")
+		config.DB.Password = os.Getenv("DB_PASSWORD")
+		config.DB.Database = os.Getenv("DB_DATABASE")
+		config.DB.TimeZone = os.Getenv("DB_TIMEZONE")
+		config.Email.Host = os.Getenv("Email_HOST")
+		config.Email.ApiKey = os.Getenv("EMAIL_API_KEY")
+		config.Email.SenderEmail = os.Getenv("EMAIL_SENDER_EMAIL")
+		config.Email.SenderEmailPassword = os.Getenv("EMAIL_SENDER_EMAIL_PASSWORD")
+		config.Nextcloud.Host = os.Getenv("NEXTCLOUD_HOST")
+		config.Nextcloud.APIKey = os.Getenv("NEXTCLOUD_API_KEY")
 	} else if os.Args[1] == "dev" {
 		file = "config/config.yaml"
 	}

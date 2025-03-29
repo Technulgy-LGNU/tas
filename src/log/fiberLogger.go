@@ -31,7 +31,7 @@ func (l *FiberLogger) FiberLoggerMiddleware() fiber.Handler {
 				latency,
 				err,
 			)
-			l.L.AddToLogBuffer(logMessage, "INFO")
+			l.L.LogEvent(logMessage, "INFO")
 
 			return err
 		} else {

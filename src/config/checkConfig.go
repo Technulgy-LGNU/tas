@@ -12,17 +12,7 @@ import (
 func CheckConfig(logger *clog.Logger) {
 	// Should be self-explanatory, if not, open a GitHub Ticket with the questions tag
 	if os.Args[1] == "prod" {
-		if _, err := os.Stat("/var/lib/tas/config/config.yaml"); os.IsNotExist(err) {
-			logger.LogEvent("Config file not found, creating one", "INFO")
-			err := os.MkdirAll("/var/lib/tas/config", 0777)
-			if err != nil {
-				logger.LogEvent(err.Error(), "FATAL")
-			}
-			_, err = os.Create("/var/lib/tas/config/config.yaml")
-			if err != nil {
-				logger.LogEvent(err.Error(), "FATAL")
-			}
-		}
+
 	} else if os.Args[1] == "dev" {
 		if _, err := os.Stat("config/config.yaml"); os.IsNotExist(err) {
 			// Create the config file

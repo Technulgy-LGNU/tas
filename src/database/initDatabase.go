@@ -3,11 +3,7 @@ package database
 import (
 	"errors"
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"gorm.io/gorm"
-	"log"
-	"os"
-	"strings"
 	"tas/src/config"
 	cLog "tas/src/log"
 	"time"
@@ -23,7 +19,7 @@ type User struct {
 	Birthday time.Time
 	Gender   string
 	Tokens   *[]BrowserTokens
-	Perms    Permission
+	Perms    *Permission
 	Request  *[]Request
 
 	TeamID *uint64 `gorm:"index"`
@@ -41,6 +37,7 @@ type BrowserTokens struct {
 }
 
 // Rule of thump: (Will be probably clarified at the point of implementation)
+// 0: None
 // 1: See
 // 2: Edit
 // 3: Admin
@@ -49,18 +46,18 @@ type Permission struct {
 	gorm.Model
 	ID uint64 `gorm:"primaryKey"`
 
-	Login      *bool
-	Admin      *bool
-	Members    *int
-	Teams      *int
-	Events     *int
-	Newsletter *int
-	Form       *int
-	Website    *int
-	Orders     *int
+	Login      bool
+	Admin      bool
+	Members    int
+	Teams      int
+	Events     int
+	Newsletter int
+	Form       int
+	Website    int
+	Orders     int
 
 	UserID uint64 `gorm:"index"`
-	User   *User
+	User   User
 }
 
 type ResetPassword struct {
@@ -175,18 +172,7 @@ type Link struct {
 
 	OriginalURL string
 	ForwardURL  string
-	Clicks      []Click
-}
-
-type Click struct {
-	gorm.Model
-	ID uint64 `gorm:"primaryKey"`
-
-	IP     string
-	Clicks int
-
-	LinkID uint64 `gorm:"index"`
-	Link   Link
+	Clicks      int64
 }
 
 type Order struct {
@@ -235,24 +221,6 @@ type RepeatingOrder struct {
 	Price float32
 	Shop  string
 	Link  string
-}
-
-type Post struct {
-	gorm.Model
-	ID uint64 `gorm:"primaryKey"`
-
-	Name        string
-	Text        string
-	ReleaseDate time.Time
-}
-
-type File struct {
-	gorm.Model
-	ID uint64 `gorm:"primaryKey"`
-
-	Name      string
-	Location  string
-	ShortLink string
 }
 
 func InitDatabase(Logger *cLog.Logger, cfg *config.CFG, db *gorm.DB) error {
@@ -324,11 +292,6 @@ func InitDatabase(Logger *cLog.Logger, cfg *config.CFG, db *gorm.DB) error {
 		return errors.New(fmt.Sprintf("error migrating table: %v\n", err))
 	}
 
-	err = db.AutoMigrate(&Click{})
-	if err != nil {
-		return errors.New(fmt.Sprintf("error migrating table: %v\n", err))
-	}
-
 	err = db.AutoMigrate(&Order{})
 	if err != nil {
 		return errors.New(fmt.Sprintf("error migrating table: %v\n", err))
@@ -349,91 +312,6 @@ func InitDatabase(Logger *cLog.Logger, cfg *config.CFG, db *gorm.DB) error {
 		return errors.New(fmt.Sprintf("error migrating table: %v\n", err))
 	}
 
-	err = db.AutoMigrate(&Post{})
-	if err != nil {
-		return errors.New(fmt.Sprintf("error migrating table: %v\n", err))
-	}
-
-	err = db.AutoMigrate(&File{})
-	if err != nil {
-		return errors.New(fmt.Sprintf("error migrating table: %v\n", err))
-	}
-
-	// Initial Admin user
-	type data struct {
-		AdminUserCreated bool `yaml:"AdminUserCreated"`
-	}
-
-	if _, err := os.Stat("data/cache.yaml"); errors.Is(err, os.ErrNotExist) {
-		Logger.LogEvent("Cache file not found, creating new one, ...", "INFO")
-
-		file, err := os.Create("data/cache.yaml")
-		if err != nil {
-			return errors.New(fmt.Sprintf("error creating file: %v\n", err))
-		}
-		log.Println("Cache file created")
-		defer file.Close()
-
-		_, err = file.Write([]byte("AdminUserCreated: false"))
-		if err != nil {
-			return errors.New(fmt.Sprintf("error writing to file: %v\n", err))
-		}
-	}
-	var d data
-
-	dataFile, err := os.Open("data/cache.yaml")
-	if err != nil {
-		return errors.New(fmt.Sprintf("error opening file: %v\n", err))
-	}
-
-	yamlParser := yaml.NewDecoder(dataFile)
-	err = yamlParser.Decode(&d)
-	if err != nil {
-		return errors.New(fmt.Sprintf("error reading file: %v\n", err))
-	}
-
-	if !d.AdminUserCreated {
-		log.Println("Creating admin user ...")
-		var tr = true
-		U := &User{
-			Name:     "admin",
-			Email:    "admin@example.com",
-			Password: cfg.User.AdminPassword,
-			Perms: Permission{
-				Login: &tr,
-				Admin: &tr,
-			},
-		}
-		db.Create(&U)
-		err = changeAdminStatus()
-		if err != nil {
-			return errors.New(fmt.Sprintf("error changing admin status: %v\n", err))
-		}
-		Logger.AddToLogBuffer("Admin user created", "INFO")
-	}
-
 	Logger.LogEvent("Database initialized", "INFO")
-	return nil
-}
-
-func changeAdminStatus() error {
-	file, err := os.ReadFile("data/cache.yaml")
-	if err != nil {
-		return errors.New(fmt.Sprintf("error migrating table: %v\n", err))
-	}
-
-	lines := strings.Split(string(file), "\n")
-	for i, line := range lines {
-		if strings.Contains(line, "AdminUserCreated: false") {
-			lines[i] = "AdminUserCreated: true\n"
-		}
-	}
-	output := strings.Join(lines, "\n")
-	err = os.WriteFile("data/cache.yaml", []byte(output), 0644)
-	if err != nil {
-		return errors.New(fmt.Sprintf("error writing to file: %v\n", err))
-	}
-
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	return nil
 }

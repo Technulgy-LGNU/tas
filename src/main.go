@@ -2,9 +2,6 @@ package main
 
 import (
 	"log"
-	"os"
-	"os/signal"
-	"syscall"
 	"tas/src/config"
 	"tas/src/database"
 	clog "tas/src/log"
@@ -19,7 +16,6 @@ import (
 func main() {
 	// Logger
 	logger := clog.Logger{}
-	logger.SetLogLevel("DEBUG")
 	gormLogger := clog.GormLogger{
 		L: &logger,
 	}
@@ -36,11 +32,9 @@ func main() {
 
 	// Checks
 	config.CheckConfig(&logger)
-	util.CheckDirs(&logger)
 
 	// Config
 	var CFG = config.GetConfig()
-	logger.SetLogLevel(CFG.LogLevel)
 
 	// Database
 	DB, err := database.GetDatabase(&gormLogger, CFG)
@@ -66,19 +60,4 @@ func main() {
 	if err != nil {
 		logger.LogEvent(err.Error(), "FATAL")
 	}
-
-	// Handle shutdown (Not working, don't know why ...)
-	done := make(chan bool, 1)
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGHUP, syscall.SIGKILL)
-
-	sig := <-sigs
-	log.Println()
-	log.Printf("Caught signal %s; exiting...", sig)
-
-	done <- true
-
-	<-done
-	log.Println("Shutting down...")
-	os.Exit(0)
 }
