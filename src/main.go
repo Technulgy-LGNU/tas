@@ -43,7 +43,7 @@ func main() {
 	}
 	// Do the initial checks parallel to save start up time
 	go func() {
-		err = database.InitDatabase(&logger, CFG, DB)
+		err = database.InitDatabase(&logger, DB)
 		if err != nil {
 			logger.LogEvent(err.Error(), "FATAL")
 		}
