@@ -54,6 +54,7 @@ type Permission struct {
 	Form       int
 	Website    int
 	Orders     int
+	Sponsors   int
 
 	UserID uint64 `gorm:"index"`
 	User   User
