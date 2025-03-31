@@ -66,3 +66,22 @@ func DeleteOldTDPs(db *gorm.DB) {
 		}
 	}()
 }
+
+// DeleteOldForms Deletes forms that were already soft deleted and are older than 3 months
+// runs once a day
+func DeleteOldForms(db *gorm.DB) {
+	ticker := time.NewTicker(24 * time.Hour)
+	threeMonthsAgo := time.Now().AddDate(0, -3, 0)
+	go func() {
+		<-ticker.C
+		var forms []database.Form
+		err := db.Find(&forms).Where("deleted_at < ?", threeMonthsAgo).Error
+		if err != nil {
+			log.SetFlags(log.LstdFlags | log.Lshortfile)
+			log.Printf("Error deleting old forms: %v\n", err)
+		}
+		for _, form := range forms {
+			db.Unscoped().Delete(&form)
+		}
+	}()
+}

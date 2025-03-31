@@ -128,10 +128,9 @@ type Form struct {
 	gorm.Model
 	ID uint64 `gorm:"primaryKey"`
 
-	Name     string
-	FromForm string
-	Email    string
-	Message  string
+	Name    string
+	Email   string
+	Message string
 }
 
 type Newsletter struct {
