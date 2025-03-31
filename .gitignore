@@ -1,6 +1,7 @@
 # Cache Data
 data/
 config/
+!helpers/config/getConfig.go
 
 # Logs
 logs

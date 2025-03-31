@@ -33,7 +33,7 @@ func (a *API) resetPassword(c *fiber.Ctx) error {
 	reset.Code, _ = util.GenerateResetCode()
 	a.DB.Create(&reset)
 
-	err := mail.SendEmail(data.Email, "T.A.S. Email Reset", reset.Code, "resetPassword", a.CFG)
+	err := mail.SendEmailPWDReset(data.Email, "T.A.S. Email Reset", reset.Code, a.CFG)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fmt.Sprintf("Error sending email: %v\n", err))
 	}

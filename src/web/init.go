@@ -92,17 +92,20 @@ func InitWeb(cfg *config.CFG, db *gorm.DB) {
 	// Websocket
 	api.Get("/ws", websocket.New(a.WebsocketConnection))
 	// Login / Password reset
-	api.Post("/login", a.login)                          // <- Email&Password, returns new session token
-	api.Delete("/logout", a.logout)                      // <- Token, deletes session
-	api.Post("/checkLogin", a.checkIfUserIsLoggedIn)     // -> Bool&Perms, checks if the session is valid and returns the users permissions
-	api.Post("/resetPassword", a.resetPassword)          // <- Email, checks if email exists, if yes, sends an email with a code to reset your password and a link to the specific site
-	api.Post("/resetPassword/code", a.resetPasswordCode) // <- Code&NewPassword, checks if the code is still valid, if yes, changes the password to the one provided and returns 200
+	api.Post("/login", a.login)                           // <- Email&Password, returns new session token
+	api.Delete("/logout", a.logout)                       // <- Token, deletes session
+	api.Post("/checkLogin", a.checkIfUserIsLoggedIn)      // -> Bool&Perms, checks if the session is valid and returns the users permissions
+	api.Post("/resetPassword", a.resetPassword)           // <- Email, checks if email exists, if yes, sends an email with a code to reset your password and a link to the specific site
+	api.Post("/resetPassword/:code", a.resetPasswordCode) // <- Code&NewPassword, checks if the code is still valid, if yes, changes the password to the one provided and returns 200
 	// Users
 
 	// Website
-	api.Post("/tdpUpload", a.postTDPUpload) // <- TDP Upload, returns 200 if successful
-	api.Get("/getTDPs", a.getTDPs)          // -> TDPs, returns all TDPs
-
+	api.Post("/tdpUpload", a.postTDPUpload)     // <- TDP Upload, returns 200 if successful
+	api.Get("/getTDPs", a.getTDPs)              // -> TDPs, returns all TDPs
+	api.Post("/newForm", a.postForm)            // <- Form, returns 200 if successful
+	api.Get("/getForms", a.getForms)            // -> Forms, returns all forms
+	api.Get("/getForm/:id", a.getForm)          // -> Form, returns the form with the given id
+	api.Delete("/deleteForm/:id", a.deleteForm) // <- Form, deletes a specific form, returns 200 if successful
 	// Newsletter
 
 	// Orders
