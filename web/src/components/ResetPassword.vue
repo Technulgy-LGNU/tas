@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, defineExpose } from "vue";
+import axios from 'axios'
 
 const visible = ref(false);
 const email = ref("");
@@ -13,9 +14,28 @@ const close = () => {
   visible.value = false;
 };
 
-const submitEmail = () => {
-  console.log("Reset email sent to:", email.value);
-  close(); // Close after submission
+const submitEmail = async () => {
+  try {
+    await axios
+      .post('/api/resetPassword', {
+        email: email.value,
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      .then((res) => {
+        if (res.status === 200) {
+          close();
+          alert("Reset password code sent to your email.");
+        } else {
+          alert("Failed to send reset password code.");
+        }
+      })
+  } catch (error) {
+    console.error("Error sending reset password code:", error);
+    alert("An error occurred while sending the reset password code.");
+  }
 };
 
 // Expose show method to parent

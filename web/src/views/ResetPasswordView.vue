@@ -1,20 +1,40 @@
 <script setup lang="ts">
 import PopUp from '@/components/PopUp.vue'
 import { ref } from 'vue'
+import axios from 'axios'
+import router from '@/router'
 
 const code = ref('')
 const password1 = ref('')
 const password2 = ref('')
 
 const handleReset = async () => {
-
+  if (password1.value !== password2.value) {
+    popUp.value?.show("Passwords do not match.");
+    password1.value = '';
+    password2.value = '';
+    return;
+  }
+  try {
+    await axios
+      .post('/api/resetPasswordCode', {
+        code: code.value,
+        password: password1.value,
+      })
+      .then((res) => {
+        if (res.status === 200) {
+          popUp.value?.show("Password reset successfully.");
+          router.push({ name: 'login' });
+        } else {
+          popUp.value?.show("Failed to reset password.");
+        }
+      })
+  } catch (error) {
+    popUp.value?.show("Failed to reset password.");
+  }
 }
 
 const popUp = ref<InstanceType<typeof PopUp> | null>(null);
-
-const showMessage = () => {
-  popUp.value?.show("This is a test message!");
-};
 </script>
 
 <template>
@@ -56,7 +76,12 @@ const showMessage = () => {
         </button>
       </form>
       <p class="text-center text-gray-500 text-sm mt-4">
-        Remembered your password? <a href="#/login" class="hover:underline text-blue-500 hover:text-blue-700">Login</a>
+        Remembered your password?
+        <button
+        @click="$router.push({ name: 'login' })"
+        class="hover:underline text-blue-500 hover:text-blue-700">
+          Login
+        </button>
       </p>
     </div>
     <PopUp ref='popUp' />

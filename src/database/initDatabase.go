@@ -64,8 +64,9 @@ type ResetPassword struct {
 	gorm.Model
 	ID uint64 `gorm:"primaryKey"`
 
-	Email string
-	Code  string
+	UserId uint64
+	Email  string
+	Code   string
 }
 
 type Team struct {
