@@ -10,17 +10,15 @@ import (
 	"log"
 	"strings"
 	"tas/src/config"
-	cLog "tas/src/log"
 )
 
 type API struct {
-	Logger  *cLog.Logger
 	DB      *gorm.DB
 	CFG     *config.CFG
 	Clients map[*websocket.Conn]bool
 }
 
-func InitWeb(logger *cLog.FiberLogger, mainLog *cLog.Logger, cfg *config.CFG, db *gorm.DB) error {
+func InitWeb(cfg *config.CFG, db *gorm.DB) {
 	var (
 		addrTASBackend = "0.0.0.0:3001"
 		addrTASLinks   = "0.0.0.0:3002"
@@ -67,7 +65,6 @@ func InitWeb(logger *cLog.FiberLogger, mainLog *cLog.Logger, cfg *config.CFG, db
 	// Internal tools
 	// TAS-Backend
 	tasBackend.Use(c)                                          // Cors middleware
-	tasBackend.Use(logger.FiberLoggerMiddleware())             // Logger   // Logger
 	tasBackend.Use(healthcheck.New(healthcheck.ConfigDefault)) // Healthcheck
 	tasBackend.Use("/ws", func(c *fiber.Ctx) error {           // Websocket middleware
 		if websocket.IsWebSocketUpgrade(c) {
@@ -81,7 +78,6 @@ func InitWeb(logger *cLog.FiberLogger, mainLog *cLog.Logger, cfg *config.CFG, db
 
 	// TAS-Links
 	links.Use(c)
-	links.Use(logger.FiberLoggerMiddleware())
 	links.Use(healthcheck.New(healthcheck.ConfigDefault))
 	links.Get("/monitor", mon)
 
@@ -89,12 +85,10 @@ func InitWeb(logger *cLog.FiberLogger, mainLog *cLog.Logger, cfg *config.CFG, db
 	api := fiber.New()
 	tasBackend.Mount("/api", api)
 	a := API{
-		Logger:  mainLog,
 		DB:      db,
 		CFG:     cfg,
 		Clients: make(map[*websocket.Conn]bool),
 	}
-	// Healthcheck
 	// Websocket
 	api.Get("/ws", websocket.New(a.WebsocketConnection))
 	// Login / Password reset
@@ -106,6 +100,8 @@ func InitWeb(logger *cLog.FiberLogger, mainLog *cLog.Logger, cfg *config.CFG, db
 	// Users
 
 	// Website
+	api.Post("/tdpUpload", a.postTDPUpload) // <- TDP Upload, returns 200 if successful
+	api.Get("/getTDPs", a.getTDPs)          // -> TDPs, returns all TDPs
 
 	// Newsletter
 
@@ -126,14 +122,10 @@ func InitWeb(logger *cLog.FiberLogger, mainLog *cLog.Logger, cfg *config.CFG, db
 	}()
 
 	// Start TAS-Links
-	go func() {
-		log.Println("Started T.A.S. Links V1")
-		err = links.Listen(addrTASLinks)
-		if err != nil {
-			log.SetFlags(log.LstdFlags | log.Lshortfile)
-			log.Fatalf("Error starting webserver: %v\n", err)
-		}
-	}()
-
-	return nil
+	log.Println("Started T.A.S. Links V1")
+	err = links.Listen(addrTASLinks)
+	if err != nil {
+		log.SetFlags(log.LstdFlags | log.Lshortfile)
+		log.Fatalf("Error starting webserver: %v\n", err)
+	}
 }

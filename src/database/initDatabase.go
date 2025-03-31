@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"gorm.io/gorm"
-	cLog "tas/src/log"
+	"log"
 	"time"
 )
 
@@ -222,7 +222,16 @@ type RepeatingOrder struct {
 	Link  string
 }
 
-func InitDatabase(Logger *cLog.Logger, db *gorm.DB) error {
+type TDPList struct {
+	gorm.Model
+	ID uint64 `gorm:"primaryKey"`
+
+	Team string
+	Year int
+	URL  string
+}
+
+func InitDatabase(db *gorm.DB) error {
 	var err error
 
 	// Auto migrating
@@ -311,6 +320,11 @@ func InitDatabase(Logger *cLog.Logger, db *gorm.DB) error {
 		return errors.New(fmt.Sprintf("error migrating table: %v\n", err))
 	}
 
-	Logger.LogEvent("Database initialized", "INFO")
+	err = db.AutoMigrate(&TDPList{})
+	if err != nil {
+		return errors.New(fmt.Sprintf("error migrating table: %v\n", err))
+	}
+
+	log.Println("INFO: Database initialized")
 	return nil
 }

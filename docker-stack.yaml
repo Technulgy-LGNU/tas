@@ -15,6 +15,7 @@ services:
       - "Nextcloud_Host=${NEXTCLOUD_HOST}"
       - "Nextcloud_ApiKey=${NEXTCLOUD_API_KEY}"
       - "Discord_Hook=${DISCORD_HOOK}"
+      - "TDPUpload-Key=${TDPUpload_KEY}"
     networks:
       - traefik-nw
     restart: always

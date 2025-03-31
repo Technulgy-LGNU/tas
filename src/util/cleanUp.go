@@ -29,7 +29,7 @@ func DeleteOldSessions(db *gorm.DB) {
 }
 
 // DeleteSoftDeletedUserKeys Deletes every user key, that was soft deleted
-// (maybe including the other dbs at well in the future, if necessary)
+// (maybe including the other dbs as well in the future, if necessary)
 // runs once a day
 func DeleteSoftDeletedUserKeys(db *gorm.DB) {
 	ticker := time.NewTicker(24 * time.Hour)
@@ -46,5 +46,23 @@ func DeleteSoftDeletedUserKeys(db *gorm.DB) {
 			db.Unscoped().Delete(&userKey)
 		}
 	}()
+}
 
+// DeleteOldTDPs Deletes TDPs that were already soft deleted and are older than 30 days
+// runs once a day
+func DeleteOldTDPs(db *gorm.DB) {
+	ticker := time.NewTicker(24 * time.Hour)
+	thirtyDaysAgo := time.Now().AddDate(0, 0, -30)
+	go func() {
+		<-ticker.C
+		var tdp []database.TDPList
+		err := db.Find(&tdp).Where("deleted_at < ?", thirtyDaysAgo).Error
+		if err != nil {
+			log.SetFlags(log.LstdFlags | log.Lshortfile)
+			log.Printf("Error deleting old TDPs: %v\n", err)
+		}
+		for _, t := range tdp {
+			db.Unscoped().Delete(&t)
+		}
+	}()
 }

@@ -29,9 +29,9 @@ type CFG struct {
 		APIKey string `yaml:"ApiKey"`
 	} `yaml:"Nextcloud"`
 
-	Discord struct {
-		Hook string `yaml:"Hook"`
-	} `yaml:"Discord"`
+	DiscordWebhook string `yaml:"DiscordWebhook"`
+
+	TDPUploadKey string `yaml:"TDPUpload_Key"`
 }
 
 // GetConfig
@@ -61,23 +61,30 @@ func GetConfig() *CFG {
 		config.Email.SenderEmailPassword = os.Getenv("EMAIL_SENDER_EMAIL_PASSWORD")
 		config.Nextcloud.Host = os.Getenv("NEXTCLOUD_HOST")
 		config.Nextcloud.APIKey = os.Getenv("NEXTCLOUD_API_KEY")
-		config.Discord.Hook = os.Getenv("DISCORD_HOOK")
+		config.DiscordWebhook = os.Getenv("DISCORD_WEBHOOK")
+		config.TDPUploadKey = os.Getenv("TDPUpload_Key")
+
+		return &config
 	} else if os.Args[1] == "dev" {
 		file = "config/config.yaml"
-	}
 
-	cfgFile, err = os.Open(file)
-	if err != nil {
-		log.SetFlags(log.LstdFlags & log.Lshortfile)
-		log.Fatalf("Error readeing config file: %d\n", err)
-	}
+		cfgFile, err = os.Open(file)
+		if err != nil {
+			log.SetFlags(log.LstdFlags & log.Lshortfile)
+			log.Fatalf("Error readeing config file: %d\n", err)
+		}
 
-	yamlParser := yaml.NewDecoder(cfgFile)
-	err = yamlParser.Decode(&config)
-	if err != nil {
-		log.SetFlags(log.LstdFlags & log.Lshortfile)
-		log.Fatalf("Error readeing config file: %d\n", err)
-	}
+		yamlParser := yaml.NewDecoder(cfgFile)
+		err = yamlParser.Decode(&config)
+		if err != nil {
+			log.SetFlags(log.LstdFlags & log.Lshortfile)
+			log.Fatalf("Error readeing config file: %d\n", err)
+		}
 
-	return &config
+		return &config
+	} else {
+		log.SetFlags(log.LstdFlags | log.Lshortfile)
+		log.Fatalf("Error: No config file found, please run the program with 'prod' or 'dev' as argument")
+		return nil
+	}
 }
