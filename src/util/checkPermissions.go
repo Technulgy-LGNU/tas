@@ -7,7 +7,7 @@ import (
 )
 
 // CheckPermissions checks if the user has the required permissions
-func CheckPermissions(headers map[string][]string, deviceID string, level int, subPart string, db *gorm.DB) bool {
+func CheckPermissions(headers map[string][]string, level int, subPart string, db *gorm.DB) bool {
 	// Check if bearer token is present
 	if headers["Authorization"] == nil {
 		return false
@@ -20,7 +20,7 @@ func CheckPermissions(headers map[string][]string, deviceID string, level int, s
 
 	// Check for an matching entry in the database
 	var key database.BrowserTokens
-	result := db.Where("device_id = ? AND key = ?", deviceID, token).First(&key)
+	result := db.Where("key = ?", token).First(&key)
 	if result.Error != nil {
 		return false
 	}

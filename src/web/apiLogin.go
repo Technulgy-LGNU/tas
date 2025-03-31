@@ -1,8 +1,10 @@
 package web
 
 import (
+	"errors"
 	"fmt"
 	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
 	"log"
 	"tas/src/database"
 	"tas/src/util"
@@ -10,99 +12,130 @@ import (
 
 func (a *API) login(c *fiber.Ctx) error {
 	var (
-		data = struct { // incoming data
+		data = struct {
 			Email    string `json:"email"`
 			Password string `json:"password"`
-			Id       string `json:"id"`
+			DeviceId string `json:"deviceId"`
 		}{}
-		returnData = struct { // Permissions and the session key will be returned to the client
-			Perms struct {
-				Login      bool `json:"login"`
-				Admin      bool `json:"admin"`
-				Members    int  `json:"members"`
-				Teams      int  `json:"teams"`
-				Events     int  `json:"events"`
-				Newsletter int  `json:"newsletter"`
-				Form       int  `json:"form"`
-				Website    int  `json:"website"`
-				Orders     int  `json:"orders"`
-			} `json:"perms"`
-			Key string `json:"key"`
-		}{}
-		user  database.User
-		perms database.Permission
+
+		err error
 	)
-	// Parsing Body
-	if err := c.BodyParser(&data); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fmt.Sprintf("Error parsing request body: %v\n", err))
+	// Parse body && validate
+	if err = c.BodyParser(&data); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON("invalid request")
+	}
+	if data.Email == "" || data.Password == "" || len(data.DeviceId) != 16 {
+		return c.Status(fiber.StatusBadRequest).JSON("invalid request")
 	}
 
-	// Finding User
-	result := a.DB.Find(&user).Where("email = ? AND password = ?", data.Email, data.Password)
-	if result.Error != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fmt.Sprintf("Error finding user: %v\n", result.Error))
-	} else if result.RowsAffected == 0 {
-		return c.Status(fiber.StatusBadRequest).JSON("User not found")
+	// Check if user exists && password is correct
+	var user database.User
+	if err = a.DB.Where("email = ?", data.Email).First(&user).Error; err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON("invalid credentials")
+	}
+	if user.Password != data.Password {
+		return c.Status(fiber.StatusBadRequest).JSON("invalid password")
 	}
 
-	// Creating a new session token and stores it in the UserKeys database, together with the client id
-	sessionToken, err := util.GenerateSessionToken()
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fmt.Sprintf("Error generating session token: %v\n", err))
+	// Check if user is already logged in
+	var browserTokens []database.BrowserTokens
+	err = a.DB.Where("user_id = ?", user.ID).Find(&browserTokens).Error
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		log.Printf("Error: No browser tokens found for user: %v\n\n", user.ID)
+		return c.Status(fiber.StatusInternalServerError).JSON("Error getting all browser tokens")
 	}
-	userKey := database.BrowserTokens{
-		DeviceId: data.Id,
-		Key:      sessionToken,
+	if len(browserTokens) > 0 {
+		var found bool
+		for _, token := range browserTokens {
+			if token.DeviceId == data.DeviceId {
+				fmt.Printf("User %v is already logged in on device %v\n", user.ID, data.DeviceId)
+				fmt.Println("All tokens will be deleted")
+				// Delete all tokens for this user
+				found = true
+			}
+		}
+		if found {
+			err = a.DB.Where("user_id = ? AND device_id = ?", user.ID, data.DeviceId).Delete(&database.BrowserTokens{}).Error
+			if err != nil {
+				log.Printf("Error deleting browser tokens: %v\n", err)
+				return c.Status(fiber.StatusInternalServerError).JSON("Error deleting old browser tokens")
+			}
+		}
+	}
+
+	// Create new browser token
+	var token = util.GenerateSessionToken()
+	if token == "" {
+		return c.Status(fiber.StatusInternalServerError).JSON("Error generating token")
+	}
+	browserToken := database.BrowserTokens{
+		DeviceId: data.DeviceId,
+		Key:      token,
+		User:     user,
 		UserID:   user.ID,
 	}
-	if err := a.DB.Create(&userKey).Error; err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fmt.Sprintf("Error creating user key: %v\n", err))
-	}
-
-	// Get permissions
-	err = a.DB.Find(&perms).Where("user_id = ?", user.ID).Error
+	err = a.DB.Create(&browserToken).Error
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fmt.Sprintf("Error finding permissions: %v\n", err))
+		log.Printf("Error creating browser token: %v\n", err)
+		return c.Status(fiber.StatusInternalServerError).JSON("Error creating browser token")
 	}
 
-	// Defines return data, and sends it to the client
-	returnData.Key = sessionToken
-	returnData.Perms.Login = perms.Login
-	returnData.Perms.Admin = perms.Admin
-	returnData.Perms.Members = perms.Members
-	returnData.Perms.Teams = perms.Teams
-	returnData.Perms.Events = perms.Events
-	returnData.Perms.Newsletter = perms.Newsletter
-	returnData.Perms.Form = perms.Form
-	returnData.Perms.Website = perms.Website
+	// Get user permissions
+	var perms database.Permission
+	err = a.DB.Where("user_id = ?", user.ID).First(&perms).Error
+	if err != nil {
+		log.Printf("Error getting user permissions: %v\n", err)
+		return c.Status(fiber.StatusInternalServerError).JSON("Error getting user permissions")
+	}
 
-	return c.Status(fiber.StatusOK).JSON(returnData)
+	// Check if user is allowed to login
+	if !perms.Login {
+		err = a.DB.Delete(&database.BrowserTokens{UserID: user.ID, DeviceId: data.DeviceId, Key: token}).Error
+		if err != nil {
+			log.Printf("Error deleting browser token: %v\n", err)
+		}
+		return c.Status(fiber.StatusForbidden).JSON("user is not allowed to login")
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"token": token,
+		"perms": fiber.Map{
+			"login":      perms.Login,
+			"admin":      perms.Admin,
+			"members":    perms.Members,
+			"teams":      perms.Teams,
+			"events":     perms.Events,
+			"newsletter": perms.Newsletter,
+			"form":       perms.Form,
+			"website":    perms.Website,
+			"orders":     perms.Orders,
+			"sponsors":   perms.Sponsors,
+		},
+	})
 }
 
 func (a *API) logout(c *fiber.Ctx) error {
 	var (
-		data = struct { // Incoming Data
-			ID string `json:"id"`
+		data = struct {
+			DeviceId string `json:"deviceId"`
+			Token    string `json:"token"`
 		}{}
-		user []database.BrowserTokens
+
+		err error
 	)
-	// Parsing body
-	if err := c.BodyParser(&data); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fmt.Sprintf("Error parsing request body: %v\n", err))
+	// Parse body && validate
+	if err = c.BodyParser(&data); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON("invalid request")
+	}
+	if len(data.DeviceId) != 16 || data.Token == "" {
+		return c.Status(fiber.StatusBadRequest).JSON("invalid request")
 	}
 
-	// Find the devices
-	err := a.DB.Find(&user).Where("user_id = ?", data.ID).Error
+	// Delete browser token
+	err = a.DB.Where("device_id = ? AND key = ?", data.DeviceId, data.Token).Delete(&database.BrowserTokens{}).Error
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fmt.Sprintf("Error finding user: %v\n", err))
-	}
-	// Deletes every auth key associated with that device
-	for _, u := range user {
-		err = a.DB.Delete(&u).Error
-		if err != nil {
-			log.SetFlags(log.LstdFlags | log.Lshortfile)
-			log.Printf("Error deleting user: %v\n", err)
-		}
+		log.Printf("Error deleting browser token: %v\n", err)
+		return c.Status(fiber.StatusInternalServerError).JSON("Error deleting browser token")
 	}
 
 	return c.Status(fiber.StatusOK).JSON("")
@@ -110,30 +143,53 @@ func (a *API) logout(c *fiber.Ctx) error {
 
 func (a *API) checkIfUserIsLoggedIn(c *fiber.Ctx) error {
 	var (
-		data = struct { // Incoming data
-			ID  string `json:"id"`
-			Key string `json:"key"`
+		data = struct {
+			DeviceId string `json:"deviceId"`
+			Token    string `json:"token"`
 		}{}
-		user  database.BrowserTokens
-		perms database.Permission
+
+		err error
 	)
-	// Parsing body
-	if err := c.BodyParser(&data); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fmt.Sprintf("Error parsing request body: %v\n", err))
+	// Parse body && validate
+	if err = c.BodyParser(&data); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON("invalid request")
 	}
-	// Finding the user
-	result := a.DB.Find(&user).Where("device_id = ? AND  key = ?", data.ID, data.Key)
-	if result.Error != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(result.Error)
-	} else if result.RowsAffected == 0 { // If no user is found, the client gets the command to delete the stored session token and return to the login site
-		return c.Status(fiber.StatusForbidden).JSON("User not found, instant logout")
+	if len(data.DeviceId) != 16 || data.Token == "" {
+		log.Printf("Invalid request: %v\n", data)
+		return c.Status(fiber.StatusBadRequest).JSON("invalid request")
 	}
 
-	// Finds the permissions of that user and sends them to the client
-	err := a.DB.Find(&perms).Where("user_id = ?", user.UserID).Error
+	// Check if user is logged in
+	var browserToken database.BrowserTokens
+	err = a.DB.Where("device_id = ? AND key = ?", data.DeviceId, data.Token).First(&browserToken).Error
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fmt.Sprintf("Error finding permissions: %v\n", err))
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return c.Status(fiber.StatusUnauthorized).JSON("invalid credentials")
+		}
+		log.Printf("Error getting browser token: %v\n", err)
+		return c.Status(fiber.StatusInternalServerError).JSON("Error getting browser token")
 	}
 
-	return c.Status(fiber.StatusOK).JSON(perms)
+	// Get user permissions
+	var perms database.Permission
+	err = a.DB.Where("user_id = ?", browserToken.UserID).First(&perms).Error
+	if err != nil {
+		log.Printf("Error getting user permissions: %v\n", err)
+		return c.Status(fiber.StatusInternalServerError).JSON("Error getting user permissions")
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"perms": fiber.Map{
+			"login":      perms.Login,
+			"admin":      perms.Admin,
+			"members":    perms.Members,
+			"teams":      perms.Teams,
+			"events":     perms.Events,
+			"newsletter": perms.Newsletter,
+			"form":       perms.Form,
+			"website":    perms.Website,
+			"orders":     perms.Orders,
+			"sponsors":   perms.Sponsors,
+		},
+	})
 }

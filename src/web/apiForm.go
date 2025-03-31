@@ -5,23 +5,14 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"log"
 	"tas/src/database"
+	"tas/src/mail"
 	"tas/src/notifications"
 	"tas/src/util"
 )
 
 func (a *API) getForms(c *fiber.Ctx) error {
-	var (
-		data = struct {
-			DeviceId string `json:"deviceId"`
-		}{}
-	)
-	// Check if device ID and bearer token are present & valid
-	if err := c.BodyParser(&data); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON("Invalid request body")
-	} else if data.DeviceId == "" {
-		return c.Status(fiber.StatusBadRequest).JSON("Missing deviceId")
-	}
-	if !util.CheckPermissions(c.GetReqHeaders(), data.DeviceId, 1, "forms", a.DB) {
+	// Check if bearer token are present & valid
+	if !util.CheckPermissions(c.GetReqHeaders(), 1, "forms", a.DB) {
 		return c.Status(fiber.StatusUnauthorized).JSON("Unauthorized")
 	}
 
@@ -36,18 +27,8 @@ func (a *API) getForms(c *fiber.Ctx) error {
 }
 
 func (a *API) getForm(c *fiber.Ctx) error {
-	var (
-		data = struct {
-			DeviceId string `json:"deviceId"`
-		}{}
-	)
-	// Check if device ID and bearer token are present & valid
-	if err := c.BodyParser(&data); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON("Invalid request body")
-	} else if data.DeviceId == "" {
-		return c.Status(fiber.StatusBadRequest).JSON("Missing deviceId")
-	}
-	if !util.CheckPermissions(c.GetReqHeaders(), data.DeviceId, 1, "forms", a.DB) {
+	// Check if bearer token are present & valid
+	if !util.CheckPermissions(c.GetReqHeaders(), 1, "forms", a.DB) {
 		return c.Status(fiber.StatusUnauthorized).JSON("Unauthorized")
 	}
 
@@ -99,31 +80,19 @@ func (a *API) postForm(c *fiber.Ctx) error {
 	}
 	notifications.SendDiscordEmbed(embed, a.CFG)
 	// Mail notification
-	/*
-		go func() {
-			err := mail.SendEmailForm("contact@technulgy.com", data.Name, data.Email, data.Content, a.CFG)
-			if err != nil {
-				log.Printf("Error sending email: %v\n", err)
-			}
-		}()
-	*/
+	go func() {
+		err := mail.SendEmailForm("contact@technulgy.com", data.Name, data.Email, data.Content, a.CFG)
+		if err != nil {
+			log.Printf("Error sending email: %v\n", err)
+		}
+	}()
 
 	return c.Status(fiber.StatusOK).JSON("Form submitted successfully")
 }
 
 func (a *API) deleteForm(c *fiber.Ctx) error {
-	var (
-		data = struct {
-			DeviceId string `json:"deviceId"`
-		}{}
-	)
-	// Check if device ID and bearer token are present & valid
-	if err := c.BodyParser(&data); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON("Invalid request body")
-	} else if data.DeviceId == "" {
-		return c.Status(fiber.StatusBadRequest).JSON("Missing deviceId")
-	}
-	if !util.CheckPermissions(c.GetReqHeaders(), data.DeviceId, 3, "forms", a.DB) {
+	// Check if bearer token are present & valid
+	if !util.CheckPermissions(c.GetReqHeaders(), 3, "forms", a.DB) {
 		return c.Status(fiber.StatusUnauthorized).JSON("Unauthorized")
 	}
 
