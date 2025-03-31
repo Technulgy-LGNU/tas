@@ -24,7 +24,7 @@ func (a *API) login(c *fiber.Ctx) error {
 	if err = c.BodyParser(&data); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON("invalid request")
 	}
-	if data.Email == "" || data.Password == "" || len(data.DeviceId) == 16 {
+	if data.Email == "" || data.Password == "" || len(data.DeviceId) != 16 {
 		return c.Status(fiber.StatusBadRequest).JSON("invalid request")
 	}
 
@@ -88,6 +88,15 @@ func (a *API) login(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON("Error getting user permissions")
 	}
 
+	// Check if user is allowed to login
+	if !perms.Login {
+		err = a.DB.Delete(&database.BrowserTokens{UserID: user.ID, DeviceId: data.DeviceId, Key: token}).Error
+		if err != nil {
+			log.Printf("Error deleting browser token: %v\n", err)
+		}
+		return c.Status(fiber.StatusForbidden).JSON("user is not allowed to login")
+	}
+
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"token": token,
 		"perms": fiber.Map{
@@ -118,7 +127,7 @@ func (a *API) logout(c *fiber.Ctx) error {
 	if err = c.BodyParser(&data); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON("invalid request")
 	}
-	if len(data.DeviceId) == 16 || data.Token == "" {
+	if len(data.DeviceId) != 16 || data.Token == "" {
 		return c.Status(fiber.StatusBadRequest).JSON("invalid request")
 	}
 
@@ -145,7 +154,8 @@ func (a *API) checkIfUserIsLoggedIn(c *fiber.Ctx) error {
 	if err = c.BodyParser(&data); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON("invalid request")
 	}
-	if len(data.DeviceId) == 16 || data.Token == "" {
+	if len(data.DeviceId) != 16 || data.Token == "" {
+		log.Printf("Invalid request: %v\n", data)
 		return c.Status(fiber.StatusBadRequest).JSON("invalid request")
 	}
 

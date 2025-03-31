@@ -94,7 +94,7 @@ func InitWeb(cfg *config.CFG, db *gorm.DB) {
 	// Login / Password reset
 	api.Post("/login", a.login)                           // <- Email&Password, returns new session token
 	api.Delete("/logout", a.logout)                       // <- Token, deletes session
-	api.Get("/checkLogin", a.checkIfUserIsLoggedIn)       // -> Bool&Perms, checks if the session is valid and returns the users permissions
+	api.Post("/checkLogin", a.checkIfUserIsLoggedIn)      // -> Bool&Perms, checks if the session is valid and returns the users permissions
 	api.Post("/resetPassword", a.resetPassword)           // <- Email, checks if email exists, if yes, sends an email with a code to reset your password and a link to the specific site
 	api.Post("/resetPassword/:code", a.resetPasswordCode) // <- Code&NewPassword, checks if the code is still valid, if yes, changes the password to the one provided and returns 200
 	// Users
