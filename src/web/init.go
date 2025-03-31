@@ -114,6 +114,9 @@ func InitWeb(cfg *config.CFG, db *gorm.DB) {
 
 	// Sponsors
 
+	// TAS-Web
+	tasBackend.Static("/", "./web/dist")
+
 	// Start TAS-Backend
 	go func() {
 		log.Println("Started T.A.S. Backend V1")
