@@ -48,7 +48,7 @@ func DeleteSoftDeletedUserKeys(db *gorm.DB) {
 	}()
 }
 
-// DeleteOldTDPs Deletes TDPs that where already soft deleted and are older than 30 days
+// DeleteOldTDPs Deletes TDPs that were already soft deleted and are older than 30 days
 // runs once a day
 func DeleteOldTDPs(db *gorm.DB) {
 	ticker := time.NewTicker(24 * time.Hour)
