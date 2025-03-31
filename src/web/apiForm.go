@@ -1,9 +1,11 @@
 package web
 
 import (
+	discordwebhook "github.com/bensch777/discord-webhook-golang"
 	"github.com/gofiber/fiber/v2"
 	"log"
 	"tas/src/database"
+	"tas/src/notifications"
 	"tas/src/util"
 )
 
@@ -88,6 +90,23 @@ func (a *API) postForm(c *fiber.Ctx) error {
 		log.Printf("Error creating form: %v\n", err)
 		return c.Status(fiber.StatusInternalServerError).JSON("Error creating form")
 	}
+
+	// Discord notification
+	embed := discordwebhook.Embed{
+		Title:       "Form Submission",
+		Color:       0xFFA500,
+		Description: "New form submitted",
+	}
+	notifications.SendDiscordEmbed(embed, a.CFG)
+	// Mail notification
+	/*
+		go func() {
+			err := mail.SendEmailForm("contact@technulgy.com", data.Name, data.Email, data.Content, a.CFG)
+			if err != nil {
+				log.Printf("Error sending email: %v\n", err)
+			}
+		}()
+	*/
 
 	return c.Status(fiber.StatusOK).JSON("Form submitted successfully")
 }

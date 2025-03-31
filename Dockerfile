@@ -1,5 +1,5 @@
 # Build the Go application
-FROM golang:1.23.3-alpine AS builder-go
+FROM golang:1.24.1-alpine AS builder-go
 
 WORKDIR /app
 
@@ -20,6 +20,8 @@ WORKDIR /app
 
 COPY --from=builder-go /app/main .
 
-EXPOSE 80
+COPY templates/ ./templates/
+
+EXPOSE 3001, 3002
 
 CMD ["./main", "prod"]

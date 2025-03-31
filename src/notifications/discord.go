@@ -11,7 +11,6 @@ func SendDiscordEmbed(embeds discordwebhook.Embed, config *config.CFG) {
 	hook := discordwebhook.Hook{
 		Username:    "TAS",
 		Avatar_url:  "https://raw.githubusercontent.com/Technulgy-LGNU/technulgy-website/refs/heads/dev/public/favicon.ico",
-		Content:     "Message",
 		Embeds:      []discordwebhook.Embed{embeds},
 		Attachments: nil,
 	}
