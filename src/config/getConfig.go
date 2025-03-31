@@ -83,7 +83,7 @@ func GetConfig() *CFG {
 
 		return &config
 	} else {
-		log.SetFlags(log.LstdFlags & log.Lshortfile)
+		log.SetFlags(log.LstdFlags | log.Lshortfile)
 		log.Fatalf("Error: No config file found, please run the program with 'prod' or 'dev' as argument")
 		return nil
 	}
