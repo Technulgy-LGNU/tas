@@ -2,10 +2,13 @@ package web
 
 import (
 	"errors"
+	"fmt"
+	discordwebhook "github.com/bensch777/discord-webhook-golang"
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 	"log"
 	"tas/src/database"
+	"tas/src/notifications"
 )
 
 func (a *API) postTDPUpload(c *fiber.Ctx) error {
@@ -62,6 +65,24 @@ func (a *API) postTDPUpload(c *fiber.Ctx) error {
 		log.Printf("Error creating TDP entry: %v", result.Error)
 		return c.Status(fiber.StatusInternalServerError).JSON("Error creating TDP entry")
 	}
+
+	// Send Discord notification
+	embed := discordwebhook.Embed{
+		Title:       "TDP Upload",
+		Color:       0x00FF00,
+		Description: fmt.Sprintf("TDP for %s has been successfully uploaded", data.Team),
+		Fields: []discordwebhook.Field{
+			{
+				Name:   fmt.Sprintf("Year: %d", data.Year),
+				Value:  fmt.Sprintf("You can find the TDP [here](%s)", data.URL),
+				Inline: true,
+			},
+		},
+		Footer: discordwebhook.Footer{
+			Text: "Technulgy Admin Software",
+		},
+	}
+	notifications.SendDiscordEmbed(embed, a.CFG)
 
 	return c.Status(fiber.StatusOK).JSON("TDP url stored")
 }

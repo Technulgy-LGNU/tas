@@ -29,9 +29,7 @@ type CFG struct {
 		APIKey string `yaml:"ApiKey"`
 	} `yaml:"Nextcloud"`
 
-	Discord struct {
-		Hook string `yaml:"Hook"`
-	} `yaml:"Discord"`
+	DiscordWebhook string `yaml:"DiscordWebhook"`
 
 	TDPUploadKey string `yaml:"TDPUpload_Key"`
 }
@@ -63,7 +61,7 @@ func GetConfig() *CFG {
 		config.Email.SenderEmailPassword = os.Getenv("EMAIL_SENDER_EMAIL_PASSWORD")
 		config.Nextcloud.Host = os.Getenv("NEXTCLOUD_HOST")
 		config.Nextcloud.APIKey = os.Getenv("NEXTCLOUD_API_KEY")
-		config.Discord.Hook = os.Getenv("DISCORD_HOOK")
+		config.DiscordWebhook = os.Getenv("DISCORD_WEBHOOK")
 		config.TDPUploadKey = os.Getenv("TDPUpload_Key")
 
 		return &config
