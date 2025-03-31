@@ -43,6 +43,7 @@ func main() {
 	// Routines
 	util.DeleteOldSessions(DB)
 	util.DeleteSoftDeletedUserKeys(DB)
+	util.DeleteOldTDPs(DB)
 
 	// Web
 	web.InitWeb(CFG, DB)

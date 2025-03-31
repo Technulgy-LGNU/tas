@@ -89,7 +89,6 @@ func InitWeb(cfg *config.CFG, db *gorm.DB) {
 		CFG:     cfg,
 		Clients: make(map[*websocket.Conn]bool),
 	}
-	// Healthcheck
 	// Websocket
 	api.Get("/ws", websocket.New(a.WebsocketConnection))
 	// Login / Password reset
@@ -101,6 +100,8 @@ func InitWeb(cfg *config.CFG, db *gorm.DB) {
 	// Users
 
 	// Website
+	api.Post("/tdpUpload", a.postTDPUpload) // <- TDP Upload, returns 200 if successful
+	api.Get("/getTDPs", a.getTDPs)          // -> TDPs, returns all TDPs
 
 	// Newsletter
 
@@ -111,7 +112,6 @@ func InitWeb(cfg *config.CFG, db *gorm.DB) {
 	// Sponsors
 
 	// Start TAS-Backend
-
 	go func() {
 		log.Println("Started T.A.S. Backend V1")
 		err = tasBackend.Listen(addrTASBackend)
