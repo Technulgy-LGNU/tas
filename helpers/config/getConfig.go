@@ -66,7 +66,7 @@ func GetConfig() *CFG {
 
 		return &config
 	} else if os.Args[1] == "dev" {
-		file = "config/config.yaml"
+		file = "../config/config.yaml"
 
 		cfgFile, err = os.Open(file)
 		if err != nil {

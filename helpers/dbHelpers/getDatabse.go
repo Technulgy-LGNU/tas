@@ -1,4 +1,4 @@
-package database
+package dbHelpers
 
 import (
 	"errors"
@@ -6,7 +6,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-	"tas/src/config"
+	"helpers/config"
 )
 
 func GetDatabase(cfg *config.CFG) (*gorm.DB, error) {
