@@ -5,6 +5,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"log"
 	"tas/src/database"
+	"tas/src/mail"
 	"tas/src/notifications"
 	"tas/src/util"
 )
@@ -79,14 +80,12 @@ func (a *API) postForm(c *fiber.Ctx) error {
 	}
 	notifications.SendDiscordEmbed(embed, a.CFG)
 	// Mail notification
-	/*
-		go func() {
-			err := mail.SendEmailForm("contact@technulgy.com", data.Name, data.Email, data.Content, a.CFG)
-			if err != nil {
-				log.Printf("Error sending email: %v\n", err)
-			}
-		}()
-	*/
+	go func() {
+		err := mail.SendEmailForm("contact@technulgy.com", data.Name, data.Email, data.Content, a.CFG)
+		if err != nil {
+			log.Printf("Error sending email: %v\n", err)
+		}
+	}()
 
 	return c.Status(fiber.StatusOK).JSON("Form submitted successfully")
 }

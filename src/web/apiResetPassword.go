@@ -4,8 +4,10 @@ import (
 	"errors"
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
+	"log"
 	"strings"
 	"tas/src/database"
+	"tas/src/mail"
 	"tas/src/util"
 	"time"
 )
@@ -48,6 +50,13 @@ func (a *API) resetPassword(c *fiber.Ctx) error {
 	}
 	if err = a.DB.Create(&resetPassword).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON("Failed to save reset code")
+	}
+
+	// Send the reset password email
+	err = mail.SendEmailPWDReset(data.Email, code, a.CFG)
+	if err != nil {
+		log.Printf("Error sending email reset password to %s: %v\n", data.Email, err)
+		return c.Status(fiber.StatusInternalServerError).JSON("Failed to send email")
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{})
@@ -107,6 +116,11 @@ func (a *API) resetPasswordCode(c *fiber.Ctx) error {
 	}
 
 	// Send a confirmation email to the user
+	err = mail.SendEmailPWDResetSuccess(user.Email, a.CFG)
+	if err != nil {
+		log.Printf("Error sending email reset password to %s: %v\n", user.Email, err)
+		return c.Status(fiber.StatusInternalServerError).JSON("Failed to send email")
+	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{})
 }
