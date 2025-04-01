@@ -8,13 +8,9 @@ const props = defineProps({
     type: Boolean,
     required: true,
   },
-  memberId: {
-    type: Number,
-    required: true,
-  },
 });
 
-const emit = defineEmits(['close', 'updateMember']);
+const emit = defineEmits(['close', 'createdMember']);
 
 interface Member {
   Id: number;
@@ -42,29 +38,27 @@ interface Teams {
   Name: string;
 }
 
-const loading = ref<boolean>(true)
-const memberData = ref<Member>({} as Member)
+const memberData = ref<Member>({
+  Id: -1,
+  Name: '',
+  Email: '',
+  Gender: '',
+  Birthday: '20-12-2005',
+  TeamId: -1,
+  Permissions: {
+    Login: false,
+    Admin: false,
+    Members: 0,
+    Teams: 0,
+    Events: 0,
+    Newsletter: 0,
+    Form: 0,
+    Website: 0,
+    Order: 0,
+    Sponsors: 0,
+  },
+})
 const teams = ref<Teams[]>([])
-
-const fetchMemberData = async () => {
-  try {
-    await axios
-      .get(`/api/getMember/${props.memberId}`, {
-        headers: {
-          'Authorization': `Bearer ${Cookies.get('token')}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      })
-      .then((response) => {
-        memberData.value = response.data
-        loading.value = false
-      });
-  } catch (error) {
-    console.error('Error fetching member data:', error)
-    emit('close')
-  }
-};
 
 const fetchTeams = async () => {
   try {
@@ -88,7 +82,7 @@ const fetchTeams = async () => {
 const saveMember = async () => {
   try {
     await axios
-      .patch(`/api/updateMember/${ props.memberId }`,
+      .post(`/api/createMember`,
         {
           ...memberData.value,
         },
@@ -100,7 +94,7 @@ const saveMember = async () => {
           },
         })
       .then((response) => {
-        emit('updateMember', response.data)
+        emit('createdMember', response.data)
         emit('close')
       })
   } catch (error) {
@@ -114,23 +108,13 @@ const closePopup = () => {
 }
 
 watch(
-  () => props.memberId,
+  () => props.visible,
   async () => {
-    if (props.memberId !== -1) {
-      await fetchTeams()
-      await fetchMemberData()
-    }
+    await fetchTeams()
   },
 )
 
-onMounted(
-  async () => {
-    if (props.memberId !== -1) {
-      await fetchMemberData()
-      await fetchTeams()
-    }
-  },
-)
+onMounted(fetchTeams())
 
 </script>
 
@@ -139,11 +123,8 @@ onMounted(
     <div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
       <h3 class="text-lg font-semibold mb-4">Edit Member</h3>
 
-      <!-- Loading state -->
-      <div v-if="loading" class="text-gray-500">Loading...</div>
-
       <!-- Form to edit member -->
-      <div v-else>
+      <div class="mb-4">
         <form @submit.prevent="saveMember">
           <div class="grid grid-cols-2 gap-4">
             <!-- Left Column: Basic Information -->
@@ -185,10 +166,6 @@ onMounted(
                   <input v-model="memberData.Permissions.Login" type="checkbox" id="login" />
                 </div>
                 <div>
-                  <label for="admin">Admin: </label>
-                  <input v-model="memberData.Permissions.Admin" type="checkbox" id="admin" disabled />
-                </div>
-                <div>
                   <label for="members">Members: </label>
                   <input v-model="memberData.Permissions.Members" type="number" id="members" min="0" max="3" />
                 </div>
@@ -225,7 +202,7 @@ onMounted(
           </div>
 
           <div class="p-3 flex space-x-2 mt-4 justify-end">
-            <button type="submit" class="bg-gray-800 text-white px-3 py-1 rounded hover:bg-gray-700">Save</button>
+            <button type="submit" class="bg-gray-800 text-white px-3 py-1 rounded hover:bg-gray-700">Create</button>
             <button type="button" @click="closePopup" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700" >Cancel</button>
           </div>
         </form>
