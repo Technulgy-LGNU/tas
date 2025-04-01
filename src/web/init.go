@@ -103,6 +103,12 @@ func InitWeb(cfg *config.CFG, db *gorm.DB) {
 	api.Post("/createMember", a.createMember)       // <- Member, creates a new member and returns the new member
 	api.Patch("/updateMember/:id", a.updateMember)  // <- Member, updates the member with the given id and returns the updated member
 	api.Delete("/deleteMember/:id", a.deleteMember) // <- Member, deletes the member with the given id and returns 200
+	// Teams
+	api.Get("/getTeams", a.getTeams)            // -> Teams, returns all teams
+	api.Get("/getTeam/:id", a.getTeam)          // -> Team, returns the team with the given id
+	api.Post("/createTeam", a.createTeam)       // <- Team, creates a new team and returns the new team
+	api.Patch("/updateTeam/:id", a.updateTeam)  // <- Team, updates the team with the given id and returns the updated team
+	api.Delete("/deleteTeam/:id", a.deleteTeam) // <- Team, deletes the team with the given id and returns 200
 	// Website
 	api.Post("/tdpUpload", a.postTDPUpload)     // <- TDP Upload, returns 200 if successful
 	api.Get("/getTDPs", a.getTDPs)              // -> TDPs, returns all TDPs

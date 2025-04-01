@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"gorm.io/gorm"
 	"log"
 	"tas/src/config"
@@ -39,19 +40,28 @@ func main() {
 		}
 
 		// Create Team Null, if it doesn't exist
-		var teamNull = database.Team{
-			Model:   gorm.Model{},
-			ID:      0,
-			Name:    "noTeam",
-			League:  "",
-			Members: nil,
-			History: nil,
-			EventID: nil,
-			Event:   nil,
-		}
-		err := DB.Create(&teamNull).Error
-		if err != nil {
-			log.Fatalf("Error creating team: %v", err)
+		var team database.Team
+		result := DB.First(&team, 0)
+		if result.Error != nil {
+			if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+				log.Println("Team Null not found, creating...")
+				var teamNull = database.Team{
+					Model:   gorm.Model{},
+					ID:      0,
+					Name:    "noTeam",
+					League:  "",
+					Members: nil,
+					History: nil,
+					EventID: nil,
+					Event:   nil,
+				}
+				err := DB.Create(&teamNull).Error
+				if err != nil {
+					log.Fatalf("Error creating team: %v", err)
+				}
+			} else {
+				log.Fatalf("Error finding team: %v", result.Error)
+			}
 		}
 
 		// Takes the longest to finish, so total startup time is measured here

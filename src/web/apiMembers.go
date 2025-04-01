@@ -134,22 +134,22 @@ func (a *API) getMember(c *fiber.Ctx) error {
 func (a *API) createMember(c *fiber.Ctx) error {
 	var (
 		data = struct {
-			Name        string `json:"name"`
-			Email       string `json:"email"`
-			Password    string `json:"password"`
-			Gender      string `json:"gender"`
-			Birthday    string `json:"birthday"`
-			TeamID      uint64 `json:"team_id"`
+			Name        string `json:"Name"`
+			Email       string `json:"Email"`
+			Password    string `json:"Password"`
+			Gender      string `json:"Gender"`
+			Birthday    string `json:"Birthday"`
+			TeamID      uint64 `json:"Team_id"`
 			Permissions struct {
-				Login      bool `json:"login"`
-				Members    int  `json:"members"`
-				Teams      int  `json:"teams"`
-				Events     int  `json:"events"`
-				Newsletter int  `json:"newsletter"`
-				Form       int  `json:"form"`
-				Website    int  `json:"website"`
-				Orders     int  `json:"orders"`
-				Sponsors   int  `json:"sponsors"`
+				Login      bool `json:"Login"`
+				Members    int  `json:"Members"`
+				Teams      int  `json:"Teams"`
+				Events     int  `json:"Events"`
+				Newsletter int  `json:"Newsletter"`
+				Form       int  `json:"Form"`
+				Website    int  `json:"Website"`
+				Orders     int  `json:"Orders"`
+				Sponsors   int  `json:"Sponsors"`
 			} `json:"permissions"`
 		}{}
 
@@ -179,7 +179,7 @@ func (a *API) createMember(c *fiber.Ctx) error {
 
 	// Reformat the birthday to the correct format (Incoming: dd-mm-yyyy, Database: time.Time)
 	var formatedDate time.Time
-	formatedDate, err = time.Parse("02-04-2006", data.Birthday)
+	formatedDate, err = time.Parse("2006-04-02", data.Birthday)
 	if err != nil {
 		log.Printf("Error parsing birthday: %v\n", err)
 		return c.Status(fiber.StatusBadRequest).JSON("invalid request")
@@ -218,23 +218,22 @@ func (a *API) createMember(c *fiber.Ctx) error {
 func (a *API) updateMember(c *fiber.Ctx) error {
 	var (
 		data = struct {
-			Name        string `json:"name"`
-			Email       string `json:"email"`
-			Gender      string `json:"gender"`
-			Birthday    string `json:"birthday"`
-			TeamID      uint64 `json:"team_id"`
+			Name        string `json:"Name"`
+			Email       string `json:"Email"`
+			Gender      string `json:"Gender"`
+			Birthday    string `json:"Birthday"`
+			TeamID      uint64 `json:"TeamId"`
 			Permissions struct {
-				Login      bool `json:"login"`
-				Admin      bool `json:"admin"`
-				Members    int  `json:"members"`
-				Teams      int  `json:"teams"`
-				Events     int  `json:"events"`
-				Newsletter int  `json:"newsletter"`
-				Form       int  `json:"form"`
-				Website    int  `json:"website"`
-				Orders     int  `json:"orders"`
-				Sponsors   int  `json:"sponsors"`
-			} `json:"permissions"`
+				Login      bool `json:"Login"`
+				Members    int  `json:"Members"`
+				Teams      int  `json:"Teams"`
+				Events     int  `json:"Events"`
+				Newsletter int  `json:"Newsletter"`
+				Form       int  `json:"Form"`
+				Website    int  `json:"Website"`
+				Orders     int  `json:"Orders"`
+				Sponsors   int  `json:"Sponsors"`
+			} `json:"Permissions"`
 		}{}
 
 		err error
@@ -264,7 +263,7 @@ func (a *API) updateMember(c *fiber.Ctx) error {
 
 	// Reformat the birthday to the correct format (Incoming: dd-mm-yyyy, Database: time.Time)
 	var formatedDate time.Time
-	formatedDate, err = time.Parse("02-04-2006", data.Birthday)
+	formatedDate, err = time.Parse("2006-04-02", data.Birthday)
 	if err != nil {
 		log.Printf("Error parsing birthday: %v\n", err)
 		return c.Status(fiber.StatusBadRequest).JSON("invalid request")
@@ -280,7 +279,7 @@ func (a *API) updateMember(c *fiber.Ctx) error {
 	if data.Gender != existingMember.Gender {
 		existingMember.Gender = data.Gender
 	}
-	if data.Birthday != existingMember.Birthday.Format("02-04-2006") {
+	if formatedDate != existingMember.Birthday {
 		existingMember.Birthday = formatedDate
 	}
 	if data.TeamID != existingMember.TeamID {
@@ -305,9 +304,6 @@ func (a *API) updateMember(c *fiber.Ctx) error {
 	}
 	if data.Permissions.Login != perms.Login {
 		perms.Login = data.Permissions.Login
-	}
-	if data.Permissions.Admin != perms.Admin {
-		perms.Admin = data.Permissions.Admin
 	}
 	if data.Permissions.Members != perms.Members {
 		perms.Members = data.Permissions.Members
