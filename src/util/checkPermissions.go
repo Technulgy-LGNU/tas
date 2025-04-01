@@ -19,7 +19,7 @@ func CheckPermissions(headers map[string][]string, level int, subPart string, db
 	}
 
 	// Check for an matching entry in the database
-	var key database.BrowserTokens
+	var key database.BrowserToken
 	result := db.Where("key = ?", token).First(&key)
 	if result.Error != nil {
 		return false
@@ -27,14 +27,14 @@ func CheckPermissions(headers map[string][]string, level int, subPart string, db
 
 	// Get the permissions for the user
 	var perms database.Permission
-	result = db.Where("user_id = ?", key.UserID).First(&perms)
+	result = db.Where("user_id = ?", key.MemberID).First(&perms)
 	if result.Error != nil {
 		return false
 	}
 
 	// Check if the user has the required permissions
 	switch subPart {
-	case "user":
+	case "members":
 		if perms.Members >= level || perms.Admin {
 			return true
 		} else {

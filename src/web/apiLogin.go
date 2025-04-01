@@ -31,7 +31,7 @@ func (a *API) login(c *fiber.Ctx) error {
 	}
 
 	// Check if user exists && password is correct
-	var user database.User
+	var user database.Member
 	if err = a.DB.Where("email = ?", data.Email).First(&user).Error; err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON("invalid credentials")
 	}
@@ -40,24 +40,24 @@ func (a *API) login(c *fiber.Ctx) error {
 	}
 
 	// Check if user is already logged in
-	var browserTokens []database.BrowserTokens
-	err = a.DB.Where("user_id = ?", user.ID).Find(&browserTokens).Error
+	var browserTokens []database.BrowserToken
+	err = a.DB.Where("member_id = ?", user.ID).Find(&browserTokens).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		log.Printf("Error: No browser tokens found for user: %v\n\n", user.ID)
+		log.Printf("Error getting all browser tokens: %v\n", err)
 		return c.Status(fiber.StatusInternalServerError).JSON("Error getting all browser tokens")
 	}
 	if len(browserTokens) > 0 {
 		var found bool
 		for _, token := range browserTokens {
 			if token.DeviceId == data.DeviceId {
-				fmt.Printf("User %v is already logged in on device %v\n", user.ID, data.DeviceId)
+				fmt.Printf("Member %v is already logged in on device %v\n", user.ID, data.DeviceId)
 				fmt.Println("All tokens will be deleted")
 				// Delete all tokens for this user
 				found = true
 			}
 		}
 		if found {
-			err = a.DB.Where("user_id = ? AND device_id = ?", user.ID, data.DeviceId).Delete(&database.BrowserTokens{}).Error
+			err = a.DB.Where("member_id = ? AND device_id = ?", user.ID, data.DeviceId).Delete(&database.BrowserToken{}).Error
 			if err != nil {
 				log.Printf("Error deleting browser tokens: %v\n", err)
 				return c.Status(fiber.StatusInternalServerError).JSON("Error deleting old browser tokens")
@@ -70,11 +70,11 @@ func (a *API) login(c *fiber.Ctx) error {
 	if token == "" {
 		return c.Status(fiber.StatusInternalServerError).JSON("Error generating token")
 	}
-	browserToken := database.BrowserTokens{
+	browserToken := database.BrowserToken{
 		DeviceId: data.DeviceId,
 		Key:      token,
-		User:     user,
-		UserID:   user.ID,
+		Member:   user,
+		MemberID: user.ID,
 	}
 	err = a.DB.Create(&browserToken).Error
 	if err != nil {
@@ -84,7 +84,7 @@ func (a *API) login(c *fiber.Ctx) error {
 
 	// Get user permissions
 	var perms database.Permission
-	err = a.DB.Where("user_id = ?", user.ID).First(&perms).Error
+	err = a.DB.Where("member_id = ?", user.ID).First(&perms).Error
 	if err != nil {
 		log.Printf("Error getting user permissions: %v\n", err)
 		return c.Status(fiber.StatusInternalServerError).JSON("Error getting user permissions")
@@ -92,7 +92,7 @@ func (a *API) login(c *fiber.Ctx) error {
 
 	// Check if user is allowed to login
 	if !perms.Login {
-		err = a.DB.Delete(&database.BrowserTokens{UserID: user.ID, DeviceId: data.DeviceId, Key: token}).Error
+		err = a.DB.Delete(&database.BrowserToken{MemberID: user.ID, DeviceId: data.DeviceId, Key: token}).Error
 		if err != nil {
 			log.Printf("Error deleting browser token: %v\n", err)
 		}
@@ -134,7 +134,7 @@ func (a *API) logout(c *fiber.Ctx) error {
 	}
 
 	// Delete browser token
-	err = a.DB.Where("device_id = ? AND key = ?", data.DeviceId, data.Token).Delete(&database.BrowserTokens{}).Error
+	err = a.DB.Where("device_id = ? AND key = ?", data.DeviceId, data.Token).Delete(&database.BrowserToken{}).Error
 	if err != nil {
 		log.Printf("Error deleting browser token: %v\n", err)
 		return c.Status(fiber.StatusInternalServerError).JSON("Error deleting browser token")
@@ -162,7 +162,7 @@ func (a *API) checkIfUserIsLoggedIn(c *fiber.Ctx) error {
 	}
 
 	// Check if user is logged in
-	var browserToken database.BrowserTokens
+	var browserToken database.BrowserToken
 	err = a.DB.Where("device_id = ? AND key = ?", data.DeviceId, data.Token).First(&browserToken).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -174,7 +174,7 @@ func (a *API) checkIfUserIsLoggedIn(c *fiber.Ctx) error {
 
 	// Get user permissions
 	var perms database.Permission
-	err = a.DB.Where("user_id = ?", browserToken.UserID).First(&perms).Error
+	err = a.DB.Where("member_id = ?", browserToken.MemberID).First(&perms).Error
 	if err != nil {
 		log.Printf("Error getting user permissions: %v\n", err)
 		return c.Status(fiber.StatusInternalServerError).JSON("Error getting user permissions")
