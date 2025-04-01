@@ -97,8 +97,12 @@ func InitWeb(cfg *config.CFG, db *gorm.DB) {
 	api.Post("/checkLogin", a.checkIfUserIsLoggedIn)    // -> Bool&Perms, checks if the session is valid and returns the users permissions
 	api.Post("/resetPassword", a.resetPassword)         // <- Email, checks if email exists, if yes, sends an email with a code to reset your password and a link to the specific site
 	api.Post("/resetPasswordCode", a.resetPasswordCode) // <- Code&NewPassword, checks if the code is still valid, if yes, changes the password to the one provided and returns 200
-	// Users
-
+	// Members
+	api.Get("/getMembers", a.getMembers)            // -> Members, returns all members
+	api.Get("/getMember/:id", a.getMember)          // -> Member, returns the member with the given id
+	api.Post("/createMember", a.createMember)       // <- Member, creates a new member and returns the new member
+	api.Patch("/updateMember/:id", a.updateMember)  // <- Member, updates the member with the given id and returns the updated member
+	api.Delete("/deleteMember/:id", a.deleteMember) // <- Member, deletes the member with the given id and returns 200
 	// Website
 	api.Post("/tdpUpload", a.postTDPUpload)     // <- TDP Upload, returns 200 if successful
 	api.Get("/getTDPs", a.getTDPs)              // -> TDPs, returns all TDPs

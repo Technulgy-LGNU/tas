@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-type User struct {
+type Member struct {
 	gorm.Model
 	ID uint64 `gorm:"primaryKey"`
 
@@ -17,29 +17,29 @@ type User struct {
 	Password string
 	Birthday time.Time
 	Gender   string
-	Tokens   *[]BrowserTokens
+	Tokens   *[]BrowserToken
 	Perms    *Permission
 	Request  *[]Request
 
-	TeamID *uint64 `gorm:"index"`
-	Team   *Team
+	TeamID uint64 `gorm:"index"`
+	Team   Team
 }
 
-type BrowserTokens struct {
+type BrowserToken struct {
 	gorm.Model
 	ID uint64 `gorm:"primaryKey"`
 
 	DeviceId string
 	Key      string
-	UserID   uint64 `gorm:"index"`
-	User     User
+	MemberID uint64 `gorm:"index"`
+	Member   Member
 }
 
 // Rule of thump: (Will be probably clarified at the point of implementation)
 // 0: None
 // 1: See
 // 2: Edit
-// 3: Admin
+// 3: Delete
 
 type Permission struct {
 	gorm.Model
@@ -56,8 +56,8 @@ type Permission struct {
 	Orders     int
 	Sponsors   int
 
-	UserID uint64 `gorm:"index"`
-	User   User
+	MemberID uint64 `gorm:"index"`
+	Member   Member
 }
 
 type ResetPassword struct {
@@ -75,11 +75,11 @@ type Team struct {
 
 	Name    string
 	League  string
-	Members []User
+	Members []Member
 	History []ParticipationHistory
 
-	EventID uint64 `gorm:"index"`
-	Event   Event
+	EventID *uint64 `gorm:"index"`
+	Event   *Event
 }
 
 type ParticipationHistory struct {
@@ -209,8 +209,8 @@ type Request struct {
 	Link     string
 	Notes    string
 
-	UserID uint64 `gorm:"index"`
-	User   User
+	MemberID uint64 `gorm:"index"`
+	Member   Member
 }
 
 type RepeatingOrder struct {
@@ -236,12 +236,12 @@ func InitDatabase(db *gorm.DB) error {
 	var err error
 
 	// Auto migrating
-	err = db.AutoMigrate(&User{})
+	err = db.AutoMigrate(&Member{})
 	if err != nil {
 		return errors.New(fmt.Sprintf("error migrating table: %v\n", err))
 	}
 
-	err = db.AutoMigrate(&BrowserTokens{})
+	err = db.AutoMigrate(&BrowserToken{})
 	if err != nil {
 		return errors.New(fmt.Sprintf("error migrating table: %v\n", err))
 	}

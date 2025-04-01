@@ -1,16 +1,16 @@
 V1:
-- [ ] Login
-- [ ] Members management
+- [x] Login
+- [x] Members management
 - [ ] Teams management
 - [ ] Events management
 - [ ] Sponsors management
 - [ ] Newsletter management
-- [ ] Form management
+- [x] Form management
 - [ ] Website management
 - [ ] Orders management
 
 V2:
-- [ ] Discord
+- [x] Discord
 - [ ] RCJ Forum
 - [ ] RCJV 
 - [ ] Better website management

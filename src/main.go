@@ -1,6 +1,7 @@
 package main
 
 import (
+	"gorm.io/gorm"
 	"log"
 	"tas/src/config"
 	"tas/src/database"
@@ -36,6 +37,23 @@ func main() {
 		if err != nil {
 			log.Fatalf("Error initializing database: %v", err)
 		}
+
+		// Create Team Null, if it doesn't exist
+		var teamNull = database.Team{
+			Model:   gorm.Model{},
+			ID:      0,
+			Name:    "noTeam",
+			League:  "",
+			Members: nil,
+			History: nil,
+			EventID: nil,
+			Event:   nil,
+		}
+		err := DB.Create(&teamNull).Error
+		if err != nil {
+			log.Fatalf("Error creating team: %v", err)
+		}
+
 		// Takes the longest to finish, so total startup time is measured here
 		mst.ElapsedTime()
 	}()

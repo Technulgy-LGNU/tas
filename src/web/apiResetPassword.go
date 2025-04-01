@@ -29,7 +29,7 @@ func (a *API) resetPassword(c *fiber.Ctx) error {
 	}
 
 	// Check if the email exists in the database
-	var user database.User
+	var user database.Member
 	if err = a.DB.Where("email = ?", data.Email).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return c.Status(fiber.StatusBadRequest).JSON("Email not found")
@@ -98,10 +98,10 @@ func (a *API) resetPasswordCode(c *fiber.Ctx) error {
 	}
 
 	// Update the user's password
-	var user database.User
+	var user database.Member
 	if err = a.DB.Where("id = ?", resetPassword.UserId).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return c.Status(fiber.StatusBadRequest).JSON("User not found")
+			return c.Status(fiber.StatusBadRequest).JSON("Member not found")
 		}
 		return c.Status(fiber.StatusInternalServerError).JSON("Database error")
 	}

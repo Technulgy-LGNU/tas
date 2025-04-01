@@ -15,7 +15,7 @@ func DeleteOldSessions(db *gorm.DB) {
 	go func() {
 		for {
 			<-ticker.C
-			var userKeys []database.BrowserTokens
+			var userKeys []database.BrowserToken
 			err := db.Find(&userKeys).Where("created_at < ?", thirtyDaysAgo).Error
 			if err != nil {
 				log.SetFlags(log.LstdFlags | log.Lshortfile)
@@ -36,7 +36,7 @@ func DeleteSoftDeletedUserKeys(db *gorm.DB) {
 	sixMonthsAgo := time.Now().AddDate(0, -6, 0)
 	go func() {
 		<-ticker.C
-		var userKeys []database.BrowserTokens
+		var userKeys []database.BrowserToken
 		err := db.Find(&userKeys).Where("deleted_at < ?", sixMonthsAgo).Error
 		if err != nil {
 			log.SetFlags(log.LstdFlags | log.Lshortfile)

@@ -151,7 +151,7 @@ onMounted(fetchForms)
                 View Content
               </button>
               <button
-                v-if="Cookies.get('admin') || Number(Cookies.get('form')) >= 3"
+                v-if="Cookies.get('admin') === 'true' || Number(Cookies.get('form')) >= 3"
                 @click="deleteForm(form.ID)"
                 class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
               >
