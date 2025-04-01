@@ -55,11 +55,16 @@
 </head>
 <body>
 <div class="container">
-  <div class="header">{{ .Subject }}</div>
+  <div class="header">Form Submission Successful</div>
+  <p>New Form was submitted</p>
   <div class="content-box">
-    <p>{{ .Content }}</p>
+    <p><strong>Name:</strong> {{ .Name }}</p>
+    <p><strong>Email:</strong> {{ .Email }}</p>
+    <p><strong>Content:</strong> {{ .Content }}</p>
   </div>
-  <a href="https://tas.technulgy.com/" class="button">T.A.S.</a>
-  <div class="footer">&copy; 2025 Technulgy | T.A.S.  All rights reserved.</div>
+  <p>To view all form submissions, click below:</p>
+  <a href="https://tas.technulgy.com/#/forms" class="button">View Submissions</a>
+  <div class="footer">&copy; 2025 Technulgy | T.A.S. All rights reserved.</div>
 </div>
 </body>
+</html>

@@ -1,290 +1,60 @@
-<!doctype html>
-<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <title>
-
-  </title>
-  <!--[if !mso]><!-->
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <!--<![endif]-->
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Form Submission Confirmation</title>
   <style>
-    #outlook a { padding:0; }
-    body { margin:0;padding:0;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%; }
-    table, td { border-collapse:collapse;mso-table-lspace:0;mso-table-rspace:0; }
-    img { border:0;height:auto;line-height:100%; outline:none;text-decoration:none;-ms-interpolation-mode:bicubic; }
-    p { display:block;margin:13px 0; }
-  </style>
-  <!--[if mso]>
-  <noscript>
-    <xml>
-      <o:OfficeDocumentSettings>
-        <o:AllowPNG/>
-        <o:PixelsPerInch>96</o:PixelsPerInch>
-      </o:OfficeDocumentSettings>
-    </xml>
-  </noscript>
-  <![endif]-->
-  <!--[if lte mso 11]>
-  <style>
-    .mj-outlook-group-fix { width:100% !important; }
-  </style>
-  <![endif]-->
-
-  <!--[if !mso]><!-->
-  <link href="https://fonts.googleapis.com/css?family=Ubuntu:300,400,500,700" rel="stylesheet" type="text/css">
-  <style>
-    @import url(https://fonts.googleapis.com/css?family=Ubuntu:300,400,500,700);
-  </style>
-  <!--<![endif]-->
-
-
-
-  <style>
-    @media only screen and (min-width:480px) {
-      .mj-column-per-100 { width:100% !important; max-width: 100%; }
-      .mj-column-per-50 { width:50% !important; max-width: 50%; }
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+    .header {
+      background: #28a745;
+      color: #ffffff;
+      padding: 15px;
+      font-size: 20px;
+      font-weight: bold;
+      border-top-left-radius: 8px;
+      border-top-right-radius: 8px;
+    }
+    .footer {
+      margin-top: 20px;
+      padding: 10px;
+      font-size: 12px;
+      color: #555;
+      border-top: 1px solid #ddd;
+    }
+    .content-box {
+      text-align: left;
+      background: #f9f9f9;
+      padding: 15px;
+      border-radius: 5px;
+      margin: 20px 0;
     }
   </style>
-  <style media="screen and (min-width:480px)">
-    .moz-text-html .mj-column-per-100 { width:100% !important; max-width: 100%; }
-    .moz-text-html .mj-column-per-50 { width:50% !important; max-width: 50%; }
-  </style>
-
-
-  <style>
-
-
-  </style>
-  <style>
-
-  </style>
-
 </head>
-<body style="word-spacing:normal;background-color:#eeeeee;">
-
-
-<div
-  style="background-color:#eeeeee;"
->
-
-
-  <!--[if mso | IE]><table><tr><td style="line-height:0;font-size:0;mso-line-height-rule:exactly;"><![endif]-->
-
-
-  <div  style="margin:0 auto;max-width:600px;">
-
-    <table
-      role="presentation" style="width:100%;"
-    >
-      <tbody>
-      <tr>
-        <td
-          style="direction:ltr;font-size:0;padding:20px 0;text-align:center;"
-        >
-          <!--[if mso | IE]><table role="presentation"><tr><td class="" style="vertical-align:top;width:600px;" ><![endif]-->
-
-          <div
-            class="mj-column-per-100 mj-outlook-group-fix" style="font-size:0;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;"
-          >
-
-            <table
-              role="presentation" style="vertical-align:top;"
-            >
-              <tbody>
-
-              <tr>
-                <td
-                  style="font-size:0;padding:10px 25px;word-break:break-word;"
-                >
-
-                  <div
-                    style="font-family:Ubuntu, Helvetica, Arial, sans-serif;font-size:13px;line-height:1;text-align:center;color:#555555;"
-                  >T.A.S. | New Form</div>
-
-                </td>
-              </tr>
-
-              </tbody>
-            </table>
-
-          </div>
-
-          <!--[if mso | IE]></td></tr></table><![endif]-->
-        </td>
-      </tr>
-      </tbody>
-    </table>
-
+<body>
+<div class="container">
+  <div class="header">Form Submission Successful</div>
+  <p>Thank you for submitting your form. Your response has been received.</p>
+  <div class="content-box">
+    <p><strong>Name:</strong> {{ .Name }}</p>
+    <p><strong>Email:</strong> {{ .Email }}</p>
+    <p><strong>Content:</strong> {{ .Content }}</p>
   </div>
-
-
-  <!--[if mso | IE]></td></tr></table><table class="" role="presentation" style="width:600px;"><tr><td style="line-height:0;font-size:0;mso-line-height-rule:exactly;"><![endif]-->
-
-
-  <div  style="background:#ffffff;margin:0 auto;max-width:600px;">
-
-    <table
-      role="presentation" style="background: #ffffff;width:100%;"
-    >
-      <tbody>
-      <tr>
-        <td
-          style="direction:ltr;font-size:0;padding:20px 0;text-align:center;"
-        >
-          <!--[if mso | IE]><table role="presentation"><tr><td class="" style="" ><![endif]-->
-
-          <div
-            style="font-family:Ubuntu, Helvetica, Arial, sans-serif;font-size:13px;line-height:1;text-align:left;color:#555555;"
-          ><h2>New Form</h2></div>
-
-          <!--[if mso | IE]></td><td class="" style="" ><table class="" role="presentation" style="width:600px;"><tr><td style="line-height:0;font-size:0;mso-line-height-rule:exactly;"><![endif]-->
-
-
-          <div  style="margin:0 auto;max-width:600px;">
-
-            <table
-              role="presentation" style="width:100%;"
-            >
-              <tbody>
-              <tr>
-                <td
-                  style="direction:ltr;font-size:0;padding:20px 0;text-align:center;"
-                >
-                  <!--[if mso | IE]><table role="presentation"><tr><td class="" style="vertical-align:top;width:300px;" ><![endif]-->
-
-                  <div
-                    class="mj-column-per-50 mj-outlook-group-fix" style="font-size:0;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;"
-                  >
-
-                    <table
-                      role="presentation" style="vertical-align:top;"
-                    >
-                      <tbody>
-
-                      <tr>
-                        <td
-                          style="font-size:0;padding:10px 25px;word-break:break-word;"
-                        >
-
-                          <div
-                            style="font-family:Ubuntu, Helvetica, Arial, sans-serif;font-size:13px;line-height:1;text-align:center;color:#555555;"
-                          >From: {{ .Name }}</div>
-
-                        </td>
-                      </tr>
-
-                      </tbody>
-                    </table>
-
-                  </div>
-
-                  <!--[if mso | IE]></td><td class="" style="vertical-align:top;width:300px;" ><![endif]-->
-
-                  <div
-                    class="mj-column-per-50 mj-outlook-group-fix" style="font-size:0;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;"
-                  >
-
-                    <table
-                      role="presentation" style="vertical-align:top;"
-                    >
-                      <tbody>
-
-                      <tr>
-                        <td
-                          style="font-size:0;padding:10px 25px;word-break:break-word;"
-                        >
-
-                          <div
-                            style="font-family:Ubuntu, Helvetica, Arial, sans-serif;font-size:13px;line-height:1;text-align:center;color:#555555;"
-                          >Email: {{ .Email }}</div>
-
-                        </td>
-                      </tr>
-
-                      </tbody>
-                    </table>
-
-                  </div>
-
-                  <!--[if mso | IE]></td></tr></table><![endif]-->
-                </td>
-              </tr>
-              </tbody>
-            </table>
-
-          </div>
-
-          <!--[if mso | IE]></td></tr></table></td><td class="" style="" ><![endif]-->
-
-          <div
-            style="font-family:Ubuntu, Helvetica, Arial, sans-serif;font-size:13px;line-height:1;text-align:left;color:#555555;"
-          >{{ .Content }}</div>
-
-          <!--[if mso | IE]></td></tr></table><![endif]-->
-        </td>
-      </tr>
-      </tbody>
-    </table>
-
-  </div>
-
-
-  <!--[if mso | IE]></td></tr></table><table class="" role="presentation" style="width:600px;"><tr><td style="line-height:0;font-size:0;mso-line-height-rule:exactly;"><![endif]-->
-
-
-  <div  style="margin:0 auto;max-width:600px;">
-
-    <table
-      role="presentation" style="width:100%;"
-    >
-      <tbody>
-      <tr>
-        <td
-          style="direction:ltr;font-size:0;padding:20px 0;text-align:center;"
-        >
-          <!--[if mso | IE]><table role="presentation"><tr><td class="" style="vertical-align:top;width:600px;" ><![endif]-->
-
-          <div
-            class="mj-column-per-100 mj-outlook-group-fix" style="font-size:0;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;"
-          >
-
-            <table
-              role="presentation" style="vertical-align:top;"
-            >
-              <tbody>
-
-              <tr>
-                <td
-                  style="font-size:0;padding:10px 25px;word-break:break-word;"
-                >
-
-                  <div
-                    style="font-family:Ubuntu, Helvetica, Arial, sans-serif;font-size:13px;line-height:1;text-align:center;color:#555555;"
-                  >Technulgy Admin Software | Technulgy</div>
-
-                </td>
-              </tr>
-
-              </tbody>
-            </table>
-
-          </div>
-
-          <!--[if mso | IE]></td></tr></table><![endif]-->
-        </td>
-      </tr>
-      </tbody>
-    </table>
-
-  </div>
-
-
-  <!--[if mso | IE]></td></tr></table><![endif]-->
-
-
+  <p>If you did not submit this form, please ignore this email.</p>
+  <div class="footer">&copy; 2025 Technulgy | T.A.S. All rights reserved.</div>
 </div>
-
 </body>
 </html>
