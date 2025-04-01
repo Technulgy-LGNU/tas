@@ -28,6 +28,17 @@ func (a *API) getTeams(c *fiber.Ctx) error {
 }
 
 func (a *API) getTeam(c *fiber.Ctx) error {
+	var (
+		data = struct {
+			ID      uint64 `json:"Id"`
+			Name    string `json:"Name"`
+			League  string `json:"League"`
+			Members []struct {
+				ID   uint64 `json:"Id"`
+				Name string `json:"Name"`
+			}
+		}{}
+	)
 	if !util.CheckPermissions(c.GetReqHeaders(), 1, "teams", a.DB) {
 		return c.Status(fiber.StatusUnauthorized).JSON("")
 	}
@@ -43,7 +54,29 @@ func (a *API) getTeam(c *fiber.Ctx) error {
 		}
 	}
 
-	return c.Status(fiber.StatusOK).JSON(team)
+	// Get team members
+	var members []database.Member
+	result = a.DB.Where("team_id = ?", team.ID).Find(&members)
+	if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return c.Status(fiber.StatusInternalServerError).JSON("error finding team members")
+	}
+
+	for _, member := range members {
+		var memberData struct {
+			ID   uint64 `json:"Id"`
+			Name string `json:"Name"`
+		}
+		memberData.ID = member.ID
+		memberData.Name = member.Name
+		data.Members = append(data.Members, memberData)
+	}
+
+	// Prepare response data
+	data.ID = team.ID
+	data.Name = team.Name
+	data.League = team.League
+
+	return c.Status(fiber.StatusOK).JSON(data)
 }
 
 func (a *API) createTeam(c *fiber.Ctx) error {

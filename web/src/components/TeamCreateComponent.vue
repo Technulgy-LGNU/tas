@@ -1,61 +1,26 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 import axios from 'axios'
 import Cookies from 'js-cookie'
 
-const props = defineProps({
+defineProps({
   visible: {
     type: Boolean,
     required: true,
   },
-  teamId: {
-    type: Number,
-    required: true,
-  },
 })
 
-const emit = defineEmits(['close', 'editedTeam'])
+const emit = defineEmits(['close', 'createdTeam'])
 
-interface Team {
-  Id: number
-  Name: string
-  League: string
-  Members: TeamMembers[]
-}
+const teamName = ref<string>('')
+const teamLeague = ref<string>('')
 
-interface TeamMembers {
-  Id: number
-  Name: string
-}
-
-const team = ref<Team>({} as Team)
-
-const fetchTeam = async () => {
+const createTeam = async () => {
   try {
     await axios
-      .get(`/api/getTeam/${props.teamId}`, {
-        headers: {
-          'Authorization': `Bearer ${Cookies.get('token')}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      })
-      .then((response) => {
-        team.value = response.data
-        console.log(team.value)
-      })
-  } catch (error) {
-    emit('close')
-    console.error('Error fetching team:', error)
-  }
-}
-
-const saveTeam = async () => {
-  try {
-    await axios
-      .put(`/api/updateTeam/${props.teamId}`, {
-        "name": team.value.Name,
-        "league": team.value.League,
+      .post('/api/createTeam', {
+        "name": teamName.value,
+        "league": teamLeague.value,
       }, {
         headers: {
           'Authorization': `Bearer ${Cookies.get('token')}`,
@@ -64,23 +29,15 @@ const saveTeam = async () => {
         },
       })
       .then(() => {
-        emit('editedTeam')
-        emit('close')
+        emit('createdTeam')
+        teamName.value = ''
+        teamLeague.value = ''
       })
   } catch (error) {
     emit('close')
-    console.error('Error updating team:', error)
+    console.error('Error creating team:', error)
   }
 }
-
-watch(
-  () => props.visible,
-  () => {
-    if (props.teamId != -1) {
-      fetchTeam()
-    }
-  },
-)
 </script>
 
 <template>
@@ -89,19 +46,18 @@ watch(
       <h3 class="text-lg font-semibold mb-4">Edit Team</h3>
 
 
-      <!-- Form to edit team -->
+      <!-- Form to create team -->
       <div>
-        <form @submit.prevent="saveTeam">
+        <form @submit.prevent="createTeam">
           <div class="grid grid-cols-2 gap-4">
-            <!-- Left Column: Team Information -->
             <div class="w-1/2 pr-4">
               <div class="mb-4">
                 <label for="name" class="block">Name:</label>
-                <input v-model="team.Name" id="name" type="text" class="input-field" required />
+                <input v-model="teamName" id="name" type="text" class="input-field" required />
               </div>
               <div class="mb-4">
                 <label for="league" class="block">League:</label>
-                <select v-model="team.League" id="league" class="input-field">
+                <select v-model="teamLeague" id="league" class="input-field">
                   <option value="Soccer Entry">Soccer Entry</option>
                   <option value="Soccer LightWeight Entry">Soccer LightWeight Entry</option>
                   <option value="Soccer LightWeight int.">Soccer LightWeight int.</option>
@@ -115,20 +71,10 @@ watch(
                 </select>
               </div>
             </div>
-
-            <!-- Right Column: Members -->
-            <div class="w-1/2 pl-4">
-              <label class="block mb-2">Members: </label>
-              <div class="permissions-grid">
-                <div v-for="member in team.Members" :key="member.Id" class="flex items-center mb-2">
-                  <span>{{ member.Name }}</span>
-                </div>
-              </div>
-            </div>
           </div>
 
           <div class="p-3 flex space-x-2 mt-4 justify-end">
-            <button type="submit" class="bg-gray-800 text-white px-3 py-1 rounded hover:bg-gray-700">Save</button>
+            <button type="submit" class="bg-gray-800 text-white px-3 py-1 rounded hover:bg-gray-700">Create</button>
             <button type="button" @click="emit('close')" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700" >Cancel</button>
           </div>
         </form>
@@ -138,4 +84,5 @@ watch(
 </template>
 
 <style scoped>
+
 </style>
