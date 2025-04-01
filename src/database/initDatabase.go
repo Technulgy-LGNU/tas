@@ -100,6 +100,7 @@ type Event struct {
 	ID uint64 `gorm:"primaryKey"`
 
 	Name            string
+	Location        string
 	StartDate       time.Time
 	EndDate         time.Time
 	RegisteredTeams []Team
