@@ -21,8 +21,8 @@ type Member struct {
 	Perms    *Permission
 	Request  *[]Request
 
-	TeamID *uint64 `gorm:"index"`
-	Team   *Team
+	TeamID uint64 `gorm:"index"`
+	Team   Team
 }
 
 type BrowserToken struct {
@@ -78,8 +78,8 @@ type Team struct {
 	Members []Member
 	History []ParticipationHistory
 
-	EventID uint64 `gorm:"index"`
-	Event   Event
+	EventID *uint64 `gorm:"index"`
+	Event   *Event
 }
 
 type ParticipationHistory struct {

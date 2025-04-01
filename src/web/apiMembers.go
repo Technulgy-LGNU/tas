@@ -13,11 +13,12 @@ import (
 // -> All members
 func (a *API) getMembers(c *fiber.Ctx) error {
 	type DataToSend struct {
-		Name        string  `json:"Name"`
-		Email       string  `json:"Email"`
-		Gender      string  `json:"Gender"`
-		Birthday    string  `json:"´Birthday"`
-		TeamID      *uint64 `json:"TeamId"`
+		Id          uint64 `json:"Id"`
+		Name        string `json:"Name"`
+		Email       string `json:"Email"`
+		Gender      string `json:"Gender"`
+		Birthday    string `json:"´Birthday"`
+		TeamID      uint64 `json:"TeamId"`
 		Permissions struct {
 			Login      bool `json:"Login"`
 			Admin      bool `json:"Admin"`
@@ -31,7 +32,7 @@ func (a *API) getMembers(c *fiber.Ctx) error {
 			Sponsors   int  `json:"Sponsors"`
 		} `json:"permissions"`
 	}
-	if util.CheckPermissions(c.GetReqHeaders(), 1, "members", a.DB) {
+	if !util.CheckPermissions(c.GetReqHeaders(), 1, "members", a.DB) {
 		return c.Status(fiber.StatusUnauthorized).JSON("")
 	}
 
@@ -58,6 +59,7 @@ func (a *API) getMembers(c *fiber.Ctx) error {
 		for _, perm := range perms {
 			if member.ID == perm.MemberID {
 				var dataToSend DataToSend
+				dataToSend.Id = member.ID
 				dataToSend.Name = member.Name
 				dataToSend.Email = member.Email
 				dataToSend.Gender = member.Gender
@@ -83,7 +85,7 @@ func (a *API) getMembers(c *fiber.Ctx) error {
 
 // -> Member by ID
 func (a *API) getMember(c *fiber.Ctx) error {
-	if util.CheckPermissions(c.GetReqHeaders(), 1, "members", a.DB) {
+	if !util.CheckPermissions(c.GetReqHeaders(), 1, "members", a.DB) {
 		return c.Status(fiber.StatusUnauthorized).JSON("")
 	}
 
@@ -107,11 +109,12 @@ func (a *API) getMember(c *fiber.Ctx) error {
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"Id":       member.ID,
 		"Name":     member.Name,
 		"Email":    member.Email,
 		"Gender":   member.Gender,
 		"Birthday": member.Birthday.Format("02-04-2006"),
-		"TeamID":   member.TeamID,
+		"TeamId":   member.TeamID,
 		"Permissions": fiber.Map{
 			"Login":      perms.Login,
 			"Admin":      perms.Admin,
@@ -131,12 +134,12 @@ func (a *API) getMember(c *fiber.Ctx) error {
 func (a *API) createMember(c *fiber.Ctx) error {
 	var (
 		data = struct {
-			Name        string  `json:"name"`
-			Email       string  `json:"email"`
-			Password    string  `json:"password"`
-			Gender      string  `json:"gender"`
-			Birthday    string  `json:"birthday"`
-			TeamID      *uint64 `json:"team_id"`
+			Name        string `json:"name"`
+			Email       string `json:"email"`
+			Password    string `json:"password"`
+			Gender      string `json:"gender"`
+			Birthday    string `json:"birthday"`
+			TeamID      uint64 `json:"team_id"`
 			Permissions struct {
 				Login      bool `json:"login"`
 				Members    int  `json:"members"`
@@ -152,7 +155,7 @@ func (a *API) createMember(c *fiber.Ctx) error {
 
 		err error
 	)
-	if util.CheckPermissions(c.GetReqHeaders(), 2, "members", a.DB) {
+	if !util.CheckPermissions(c.GetReqHeaders(), 2, "members", a.DB) {
 		return c.Status(fiber.StatusUnauthorized).JSON("")
 	}
 	// Parse & Validate the body
@@ -215,11 +218,11 @@ func (a *API) createMember(c *fiber.Ctx) error {
 func (a *API) updateMember(c *fiber.Ctx) error {
 	var (
 		data = struct {
-			Name        string  `json:"name"`
-			Email       string  `json:"email"`
-			Gender      string  `json:"gender"`
-			Birthday    string  `json:"birthday"`
-			TeamID      *uint64 `json:"team_id"`
+			Name        string `json:"name"`
+			Email       string `json:"email"`
+			Gender      string `json:"gender"`
+			Birthday    string `json:"birthday"`
+			TeamID      uint64 `json:"team_id"`
 			Permissions struct {
 				Login      bool `json:"login"`
 				Admin      bool `json:"admin"`
@@ -236,7 +239,7 @@ func (a *API) updateMember(c *fiber.Ctx) error {
 
 		err error
 	)
-	if util.CheckPermissions(c.GetReqHeaders(), 2, "members", a.DB) {
+	if !util.CheckPermissions(c.GetReqHeaders(), 2, "members", a.DB) {
 		return c.Status(fiber.StatusUnauthorized).JSON("")
 	}
 	// Parse & Validate the body
@@ -280,7 +283,7 @@ func (a *API) updateMember(c *fiber.Ctx) error {
 	if data.Birthday != existingMember.Birthday.Format("02-04-2006") {
 		existingMember.Birthday = formatedDate
 	}
-	if data.TeamID != nil && *data.TeamID != *existingMember.TeamID {
+	if data.TeamID != existingMember.TeamID {
 		existingMember.TeamID = data.TeamID
 	}
 
@@ -334,7 +337,7 @@ func (a *API) updateMember(c *fiber.Ctx) error {
 	result = a.DB.Save(&perms)
 	if result.Error != nil {
 		log.Printf("Error updating permissions: %v\n", result.Error)
-		return c.Status(fiber.StatusInternalServerError).JSON("Error updating permsissions")
+		return c.Status(fiber.StatusInternalServerError).JSON("Error updating permissions")
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
@@ -360,7 +363,7 @@ func (a *API) updateMember(c *fiber.Ctx) error {
 
 // <- Deletes member by id
 func (a *API) deleteMember(c *fiber.Ctx) error {
-	if util.CheckPermissions(c.GetReqHeaders(), 3, "members", a.DB) {
+	if !util.CheckPermissions(c.GetReqHeaders(), 3, "members", a.DB) {
 		return c.Status(fiber.StatusUnauthorized).JSON("")
 	}
 	// Check if user with given id exists
@@ -379,6 +382,22 @@ func (a *API) deleteMember(c *fiber.Ctx) error {
 	if result.Error != nil {
 		log.Printf("Error deleting member: %v\n", result.Error)
 		return c.Status(fiber.StatusInternalServerError).JSON("")
+	}
+
+	// Delete the permissions
+	var perms database.Permission
+	result = a.DB.Where("member_id = ?", c.Params("id")).Delete(&perms)
+	if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		log.Printf("Error checking if permissions exist: %v\n", result.Error)
+		return c.Status(fiber.StatusInternalServerError).JSON("Error checking if permissions exist")
+	}
+
+	// Delete all browser tokens
+	var tokens []database.BrowserToken
+	result = a.DB.Where("member_id = ?", c.Params("id")).Delete(&tokens)
+	if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		log.Printf("Error checking if tokens exist: %v\n", result.Error)
+		return c.Status(fiber.StatusInternalServerError).JSON("Error checking if tokens exist")
 	}
 
 	return c.Status(fiber.StatusOK).JSON("")
