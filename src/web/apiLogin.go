@@ -8,6 +8,7 @@ import (
 	"log"
 	"tas/src/database"
 	"tas/src/util"
+	"unicode/utf8"
 )
 
 func (a *API) login(c *fiber.Ctx) error {
@@ -22,9 +23,10 @@ func (a *API) login(c *fiber.Ctx) error {
 	)
 	// Parse body && validate
 	if err = c.BodyParser(&data); err != nil {
+		log.Printf("Error parsing body: %v\n", err)
 		return c.Status(fiber.StatusBadRequest).JSON("invalid request")
 	}
-	if data.Email == "" || data.Password == "" || len(data.DeviceId) != 16 {
+	if data.Email == "" || data.Password == "" || utf8.RuneCountInString(data.DeviceId) != 16 {
 		return c.Status(fiber.StatusBadRequest).JSON("invalid request")
 	}
 
@@ -127,7 +129,7 @@ func (a *API) logout(c *fiber.Ctx) error {
 	if err = c.BodyParser(&data); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON("invalid request")
 	}
-	if len(data.DeviceId) != 16 || data.Token == "" {
+	if utf8.RuneCountInString(data.DeviceId) != 16 || data.Token == "" {
 		return c.Status(fiber.StatusBadRequest).JSON("invalid request")
 	}
 
@@ -154,7 +156,7 @@ func (a *API) checkIfUserIsLoggedIn(c *fiber.Ctx) error {
 	if err = c.BodyParser(&data); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON("invalid request")
 	}
-	if len(data.DeviceId) != 16 || data.Token == "" {
+	if utf8.RuneCountInString(data.DeviceId) != 16 || data.Token == "" {
 		log.Printf("Invalid request: %v\n", data)
 		return c.Status(fiber.StatusBadRequest).JSON("invalid request")
 	}

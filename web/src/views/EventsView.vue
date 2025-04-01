@@ -9,7 +9,7 @@ const popUp = ref<InstanceType<typeof PopUp> | null>(null);
 
 <template>
   <div class="flex flex-col min-h-screen">
-    <Header page="Dashboard" />
+    <Header page="Events" />
 
     <PopUp ref="popUp" />
   </div>

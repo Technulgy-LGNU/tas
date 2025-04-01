@@ -45,6 +45,7 @@ func main() {
 	util.DeleteSoftDeletedUserKeys(DB)
 	util.DeleteOldTDPs(DB)
 	util.DeleteOldForms(DB)
+	util.DeleteOldPasswordResetCodes(DB)
 
 	// Web
 	web.InitWeb(CFG, DB)

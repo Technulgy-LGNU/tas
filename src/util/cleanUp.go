@@ -85,3 +85,22 @@ func DeleteOldForms(db *gorm.DB) {
 		}
 	}()
 }
+
+// DeleteOldPasswordResetCodes Deletes password reset codes that are older than 1 hour
+// runs every hour
+func DeleteOldPasswordResetCodes(db *gorm.DB) {
+	ticker := time.NewTicker(1 * time.Hour)
+	oneHourAgo := time.Now().Add(-1 * time.Hour)
+	go func() {
+		<-ticker.C
+		var codes []database.ResetPassword
+		err := db.Find(&codes).Where("created_at < ?", oneHourAgo).Error
+		if err != nil {
+			log.SetFlags(log.LstdFlags | log.Lshortfile)
+			log.Printf("Error deleting old password reset codes: %v\n", err)
+		}
+		for _, code := range codes {
+			db.Unscoped().Delete(&code)
+		}
+	}()
+}
