@@ -44,56 +44,62 @@ func CheckPermissions(headers map[string][]string, level int, subPart string, db
 
 	// Check if the user has the required permissions
 	switch subPart {
-	case "members":
+	case Members:
 		if perms.Members >= level || perms.Admin {
 			return true
 		} else {
 			return false
 		}
-	case "forms":
+	case Forms:
 		if perms.Form >= level || perms.Admin {
 			return true
 		} else {
 			return false
 		}
-	case "events":
+	case Events:
 		if perms.Events >= level || perms.Admin {
 			return true
 		} else {
 			return false
 		}
-	case "teams":
+	case Teams:
 		if perms.Teams >= level || perms.Admin {
 			return true
 		} else {
 			return false
 		}
-	case "orders":
+	case Orders:
 		if perms.Orders >= level || perms.Admin {
 			return true
 		} else {
 			return false
 		}
-	case "newsletter":
+	case Newsletter:
 		if perms.Newsletter >= level || perms.Admin {
 			return true
 		} else {
 			return false
 		}
-	case "website":
+	case Website:
 		if perms.Website >= level || perms.Admin {
 			return true
 		} else {
 			return false
 		}
-	case "admin":
+	case Admin:
 		if perms.Admin {
 			return true
 		} else {
 			return false
 		}
-	case "login":
+	case Login:
 		if perms.Login {
+			return true
+		} else {
+			return false
+		}
+	case Sponsors:
+		if perms.Sponsors >= level || perms.Admin {
 			return true
 		} else {
 			return false

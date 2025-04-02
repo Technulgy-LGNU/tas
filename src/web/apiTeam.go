@@ -9,7 +9,7 @@ import (
 )
 
 func (a *API) getTeams(c *fiber.Ctx) error {
-	if !util.CheckPermissions(c.GetReqHeaders(), 1, "teams", a.DB) {
+	if !util.CheckPermissions(c.GetReqHeaders(), 1, util.Teams, a.DB) {
 		return c.Status(fiber.StatusUnauthorized).JSON("")
 	}
 
@@ -39,7 +39,7 @@ func (a *API) getTeam(c *fiber.Ctx) error {
 			}
 		}{}
 	)
-	if !util.CheckPermissions(c.GetReqHeaders(), 1, "teams", a.DB) {
+	if !util.CheckPermissions(c.GetReqHeaders(), 1, util.Teams, a.DB) {
 		return c.Status(fiber.StatusUnauthorized).JSON("")
 	}
 
@@ -88,7 +88,7 @@ func (a *API) createTeam(c *fiber.Ctx) error {
 
 		err error
 	)
-	if !util.CheckPermissions(c.GetReqHeaders(), 2, "teams", a.DB) {
+	if !util.CheckPermissions(c.GetReqHeaders(), 2, util.Teams, a.DB) {
 		return c.Status(fiber.StatusUnauthorized).JSON("")
 	}
 	// Parse and validate the request body
@@ -135,7 +135,7 @@ func (a *API) updateTeam(c *fiber.Ctx) error {
 
 		err error
 	)
-	if !util.CheckPermissions(c.GetReqHeaders(), 2, "teams", a.DB) {
+	if !util.CheckPermissions(c.GetReqHeaders(), 2, util.Teams, a.DB) {
 		return c.Status(fiber.StatusUnauthorized).JSON("")
 	}
 	// Parse and validate the request body
@@ -184,7 +184,7 @@ func (a *API) updateTeam(c *fiber.Ctx) error {
 }
 
 func (a *API) deleteTeam(c *fiber.Ctx) error {
-	if !util.CheckPermissions(c.GetReqHeaders(), 3, "teams", a.DB) {
+	if !util.CheckPermissions(c.GetReqHeaders(), 3, util.Teams, a.DB) {
 		return c.Status(fiber.StatusUnauthorized).JSON("")
 	}
 
