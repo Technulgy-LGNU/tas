@@ -32,7 +32,7 @@ func (a *API) getMembers(c *fiber.Ctx) error {
 			Sponsors   int  `json:"Sponsors"`
 		} `json:"permissions"`
 	}
-	if !util.CheckPermissions(c.GetReqHeaders(), 1, "members", a.DB) {
+	if !util.CheckPermissions(c.GetReqHeaders(), 1, util.Members, a.DB) {
 		return c.Status(fiber.StatusUnauthorized).JSON("")
 	}
 
@@ -85,7 +85,7 @@ func (a *API) getMembers(c *fiber.Ctx) error {
 
 // -> Member by ID
 func (a *API) getMember(c *fiber.Ctx) error {
-	if !util.CheckPermissions(c.GetReqHeaders(), 1, "members", a.DB) {
+	if !util.CheckPermissions(c.GetReqHeaders(), 1, util.Members, a.DB) {
 		return c.Status(fiber.StatusUnauthorized).JSON("")
 	}
 
@@ -155,7 +155,7 @@ func (a *API) createMember(c *fiber.Ctx) error {
 
 		err error
 	)
-	if !util.CheckPermissions(c.GetReqHeaders(), 2, "members", a.DB) {
+	if !util.CheckPermissions(c.GetReqHeaders(), 2, util.Members, a.DB) {
 		return c.Status(fiber.StatusUnauthorized).JSON("")
 	}
 	// Parse & Validate the body
@@ -238,7 +238,7 @@ func (a *API) updateMember(c *fiber.Ctx) error {
 
 		err error
 	)
-	if !util.CheckPermissions(c.GetReqHeaders(), 2, "members", a.DB) {
+	if !util.CheckPermissions(c.GetReqHeaders(), 2, util.Members, a.DB) {
 		return c.Status(fiber.StatusUnauthorized).JSON("")
 	}
 	// Parse & Validate the body
@@ -359,7 +359,7 @@ func (a *API) updateMember(c *fiber.Ctx) error {
 
 // <- Deletes member by id
 func (a *API) deleteMember(c *fiber.Ctx) error {
-	if !util.CheckPermissions(c.GetReqHeaders(), 3, "members", a.DB) {
+	if !util.CheckPermissions(c.GetReqHeaders(), 3, util.Members, a.DB) {
 		return c.Status(fiber.StatusUnauthorized).JSON("")
 	}
 	// Check if user with given id exists

@@ -121,7 +121,12 @@ func InitWeb(cfg *config.CFG, db *gorm.DB) {
 	// Orders
 
 	// Events
-
+	api.Get("/getEvents", a.getEvents)                // -> Events, returns all events
+	api.Get("/getEvent/:id", a.getEvent)              // -> Event, returns the event with the given id
+	api.Post("/createEvent", a.createEvent)           // <- Event, creates a new event and returns the new event
+	api.Patch("/updateEvent/:id", a.updateEvent)      // <- Event, updates the event with the given id and returns the updated event
+	api.Delete("/deleteEvent/:id", a.deleteEvent)     // <- Event, deletes the event with the given id and returns 200
+	api.Post("/addTeamToEvent/:id", a.addTeamToEvent) // <- Event, adds a team to the event with the given id and returns 200
 	// Sponsors
 
 	// TAS-Web

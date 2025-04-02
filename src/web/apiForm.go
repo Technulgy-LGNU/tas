@@ -12,7 +12,7 @@ import (
 
 func (a *API) getForms(c *fiber.Ctx) error {
 	// Check if bearer token are present & valid
-	if !util.CheckPermissions(c.GetReqHeaders(), 1, "forms", a.DB) {
+	if !util.CheckPermissions(c.GetReqHeaders(), 1, util.Forms, a.DB) {
 		return c.Status(fiber.StatusUnauthorized).JSON("Unauthorized")
 	}
 
@@ -28,7 +28,7 @@ func (a *API) getForms(c *fiber.Ctx) error {
 
 func (a *API) getForm(c *fiber.Ctx) error {
 	// Check if bearer token are present & valid
-	if !util.CheckPermissions(c.GetReqHeaders(), 1, "forms", a.DB) {
+	if !util.CheckPermissions(c.GetReqHeaders(), 1, util.Forms, a.DB) {
 		return c.Status(fiber.StatusUnauthorized).JSON("Unauthorized")
 	}
 
@@ -92,7 +92,7 @@ func (a *API) postForm(c *fiber.Ctx) error {
 
 func (a *API) deleteForm(c *fiber.Ctx) error {
 	// Check if bearer token are present & valid
-	if !util.CheckPermissions(c.GetReqHeaders(), 3, "forms", a.DB) {
+	if !util.CheckPermissions(c.GetReqHeaders(), 3, util.Forms, a.DB) {
 		return c.Status(fiber.StatusUnauthorized).JSON("Unauthorized")
 	}
 
