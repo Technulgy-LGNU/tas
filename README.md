@@ -2,8 +2,8 @@
 
 This Software is for managing everything about the Technulgy organisation,
 including but not limited to:
- - [ ] Members
- - [ ] Teams
+ - [x] Members
+ - [x] Teams
  - [ ] Sponsors
  - [ ] Website
  - [ ] Newsletter

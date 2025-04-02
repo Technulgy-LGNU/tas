@@ -73,10 +73,12 @@ type Team struct {
 	gorm.Model
 	ID uint64 `gorm:"primaryKey"`
 
-	Name    string
-	League  string
-	Members []Member
-	History []ParticipationHistory
+	Name     string
+	Email    string
+	League   string
+	Password string
+	Members  []Member
+	History  []ParticipationHistory
 
 	EventID *uint64 `gorm:"index"`
 	Event   *Event

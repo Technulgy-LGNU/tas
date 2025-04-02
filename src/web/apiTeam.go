@@ -4,7 +4,9 @@ import (
 	"errors"
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
+	"log"
 	"tas/src/database"
+	"tas/src/integrations"
 	"tas/src/util"
 )
 
@@ -82,8 +84,12 @@ func (a *API) getTeam(c *fiber.Ctx) error {
 func (a *API) createTeam(c *fiber.Ctx) error {
 	var (
 		data = struct {
-			Name   string `json:"name"`
-			League string `json:"league"`
+			Name            string `json:"name"`
+			Email           string `json:"email"`
+			League          string `json:"league"`
+			Password        string `json:"password"`
+			CreateMail      bool   `json:"createMail"`
+			CreateNextCloud bool   `json:"createNextcloud"`
 		}{}
 
 		err error
@@ -115,12 +121,30 @@ func (a *API) createTeam(c *fiber.Ctx) error {
 
 	// Create a new team
 	team := database.Team{
-		Name:   data.Name,
-		League: data.League,
+		Name:     data.Name,
+		Email:    data.Email,
+		League:   data.League,
+		Password: data.Password,
 	}
 	result := a.DB.Create(&team)
 	if result.Error != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON("error creating team")
+	}
+
+	// Create team in mailcow and nextcloud
+	if data.CreateMail {
+		err = integrations.CreateMailcowUser(data.Name, data.Email, data.Password, a.CFG)
+		if err != nil {
+			log.Printf("error creating mailcow user: %v", err)
+			return c.Status(fiber.StatusInternalServerError).JSON("error creating mailcow user")
+		}
+	}
+	if data.CreateNextCloud {
+		err = integrations.CreateNextCloudUser(data.Name, data.Email, data.Password, a.CFG)
+		if err != nil {
+			log.Printf("error creating nextcloud user: %v", err)
+			return c.Status(fiber.StatusInternalServerError).JSON("error creating nextcloud user")
+		}
 	}
 
 	return c.Status(fiber.StatusOK).JSON(team)
@@ -130,6 +154,7 @@ func (a *API) updateTeam(c *fiber.Ctx) error {
 	var (
 		data = struct {
 			Name   string `json:"name"`
+			Email  string `json:"email"`
 			League string `json:"league"`
 		}{}
 
