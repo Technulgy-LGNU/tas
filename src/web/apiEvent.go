@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
+	"log"
 	"tas/src/database"
 	"tas/src/util"
 	"time"
@@ -91,9 +92,11 @@ func (a *API) createEvent(c *fiber.Ctx) error {
 	}
 	// Parse & validate request body
 	if err := c.BodyParser(&data); err != nil {
+		log.Printf("Error parsing request body: %v", err)
 		return c.Status(fiber.StatusBadRequest).JSON("Invalid request")
 	}
-	if data.Name == "" || data.Location == "" || data.StartDate.IsZero() || data.EndDate.IsZero() {
+	if data.Name == "" || data.Location == "" {
+		log.Printf("Invalid request data: %v", data)
 		return c.Status(fiber.StatusBadRequest).JSON("Invalid request")
 	}
 
@@ -213,4 +216,49 @@ func (a *API) deleteEvent(c *fiber.Ctx) error {
 	}
 
 	return c.Status(fiber.StatusOK).JSON("")
+}
+
+func (a *API) sendEventNotification(c *fiber.Ctx) error {
+  var data = struct {
+    Title   string `json:"Title"`
+    Message string `json:"Message"`
+  }{}
+  if !util.CheckPermissions(c.GetReqHeaders(), 2, util.Events, a.DB) {
+    return c.Status(fiber.StatusForbidden).JSON("")
+  }
+  // Parse & validate request body
+  if err := c.BodyParser(&data); err != nil {
+    log.Printf("Error parsing request body: %v", err)
+    return c.Status(fiber.StatusBadRequest).JSON("Invalid request")
+  }
+  if data.Title == "" || data.Message == "" {
+    log.Printf("Invalid request data: %v", data)
+    return c.Status(fiber.StatusBadRequest).JSON("Invalid request")
+  }
+
+  // Get all teams
+  var teams []database.Team
+  result := a.DB.Find(&teams).Where("event_id = ?", c.Params("id"))
+  if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+    return c.Status(fiber.StatusInternalServerError).JSON("Error fetching teams")
+  }
+
+  // Get all members of these teams
+  var members []database.Member
+  result = a.DB.Find(&members).Where("team_id IN ?", teams)
+  if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+    return c.Status(fiber.StatusInternalServerError).JSON("Error fetching members")
+  }
+
+  // Send notification to all teams & members
+  var emailList []string
+  for _, member := range members {
+    emailList = append(emailList, member.Email)
+  }
+
+  // Send emails
+  for _, email := range emailList {
+    err := mail.
+  }
+
 }
