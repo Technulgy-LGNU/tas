@@ -131,19 +131,19 @@ onMounted(fetchTeams())
             <div class="w-1/2 pr-4">
               <div class="mb-4">
                 <label for="name" class="block">Name:</label>
-                <input v-model="memberData.Name" id="name" type="text" class="input-field" required />
+                <input v-model="memberData.Name" id="name" type="text" class="input-field border-2 border-b-black rounded-sm" required />
               </div>
               <div class="mb-4">
                 <label for="email" class="block">Email:</label>
-                <input v-model="memberData.Email" id="email" type="email" class="input-field" required />
+                <input v-model="memberData.Email" id="email" type="email" class="input-field border-2 border-b-black rounded-sm" required />
               </div>
               <div class="mb-4">
                 <label for="birthday" class="block">Birthday:</label>
-                <input v-model="memberData.Birthday" id="birthday" type="date" class="input-field" />
+                <input v-model="memberData.Birthday" id="birthday" type="date" class="input-field border-2 border-b-black rounded-sm" />
               </div>
               <div class="mb-4">
                 <label for="gender" class="block">Gender:</label>
-                <select v-model="memberData.Gender" id="gender" class="input-field">
+                <select v-model="memberData.Gender" id="gender" class="input-field border-2 border-b-black rounded-sm">
                   <option value="male">Male</option>
                   <option value="female">Female</option>
                   <option value="divers">Divers</option>
@@ -151,7 +151,7 @@ onMounted(fetchTeams())
               </div>
               <div class="mb-4">
                 <label for="team" class="block">Team:</label>
-                <select v-model="memberData.TeamId" id="team" class="input-field">
+                <select v-model="memberData.TeamId" id="team" class="input-field border-2 border-b-black rounded-sm">
                   <option v-for="team in teams" :key="team.ID" :value="team.ID">{{ team.Name }}</option>
                 </select>
               </div>

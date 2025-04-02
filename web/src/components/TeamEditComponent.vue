@@ -19,6 +19,7 @@ const emit = defineEmits(['close', 'editedTeam'])
 interface Team {
   Id: number
   Name: string
+  Email: string
   League: string
   Members: TeamMembers[]
 }
@@ -55,6 +56,7 @@ const saveTeam = async () => {
     await axios
       .put(`/api/updateTeam/${props.teamId}`, {
         "name": team.value.Name,
+        "email": team.value.Email,
         "league": team.value.League,
       }, {
         headers: {
@@ -97,11 +99,15 @@ watch(
             <div class="w-1/2 pr-4">
               <div class="mb-4">
                 <label for="name" class="block">Name:</label>
-                <input v-model="team.Name" id="name" type="text" class="input-field" required />
+                <input v-model="team.Name" id="name" type="text" class="input-field border-2 border-b-black rounded-sm" required />
+              </div>
+              <div class="mb-4">
+                <label for="email" class="block">Email:</label>
+                <input v-model="team.Email" id="email" type="email" class="input-field border-2 border-b-black rounded-sm" required />
               </div>
               <div class="mb-4">
                 <label for="league" class="block">League:</label>
-                <select v-model="team.League" id="league" class="input-field">
+                <select v-model="team.League" id="league" class="input-field border-2 border-b-black rounded-sm">
                   <option value="Soccer Entry">Soccer Entry</option>
                   <option value="Soccer LightWeight Entry">Soccer LightWeight Entry</option>
                   <option value="Soccer LightWeight int.">Soccer LightWeight int.</option>
