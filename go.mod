@@ -3,6 +3,7 @@ module tas
 go 1.24.1
 
 require (
+	github.com/bensch777/discord-webhook-golang v0.0.6
 	github.com/gofiber/fiber/v2 v2.52.6
 	github.com/gofiber/websocket/v2 v2.2.1
 	gopkg.in/yaml.v3 v3.0.1
@@ -12,7 +13,6 @@ require (
 
 require (
 	github.com/andybalholm/brotli v1.1.1 // indirect
-	github.com/bensch777/discord-webhook-golang v0.0.6 // indirect
 	github.com/fasthttp/websocket v1.5.12 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
