@@ -1,6 +1,6 @@
 services:
   tas-backend:
-    image: "ghcr.io/technulgy-lgnu/tas-backend:${GIT_COMMIT_HASH:-latest}"
+    image: "ghcr.io/technulgy-lgnu/tas:${GIT_COMMIT_HASH:-latest}"
     environment:
       - "Database_Host=${DB_HOST}"
       - "Database_Port=${DB_PORT}"
