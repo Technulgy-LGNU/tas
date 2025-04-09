@@ -4,7 +4,6 @@ import PopUp from '@/components/PopUp.vue'
 import { onMounted, ref } from 'vue'
 import axios from 'axios'
 import Cookies from 'js-cookie'
-import FormContentComponent from '@/components/FormContentComponent.vue'
 
 const popUp = ref<InstanceType<typeof PopUp> | null>(null);
 const loading = ref<boolean>(true);
@@ -61,6 +60,10 @@ const deleteEvent = async (id: number) => {
   }
 }
 
+const openEditEvent = async (id: number) => {
+  selectedEvent.value = id
+  console.log(id)
+}
 
 
 onMounted(fetchEvents())
