@@ -16,12 +16,9 @@ FROM node:22.13.0-alpine AS builder-node
 
 WORKDIR /app
 
-COPY web/package.json web/package-lock.json ./
+COPY web/ ./
 
 RUN npm install
-
-COPY web/src ./src
-COPY web/public ./public
 
 RUN npm run build
 
