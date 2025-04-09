@@ -2,7 +2,7 @@ name: pipeline
 on:
   push:
     branches:
-      - "main"
+      - "prod"
 
 permissions:
   packages: write
