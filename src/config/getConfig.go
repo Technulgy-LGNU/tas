@@ -19,15 +19,9 @@ type CFG struct {
 
 	Email struct {
 		Host                string `yaml:"Host"`
-		ApiKey              string `yaml:"ApiKey"`
 		SenderEmail         string `yaml:"SenderEmail"`
 		SenderEmailPassword string `yaml:"Password"`
 	} `yaml:"Email"`
-
-	Nextcloud struct {
-		Host   string `yaml:"Host"`
-		APIKey string `yaml:"ApiKey"`
-	} `yaml:"Nextcloud"`
 
 	DiscordWebhook string `yaml:"DiscordWebhook"`
 
@@ -41,7 +35,7 @@ type CFG struct {
 func GetConfig() *CFG {
 	// I think, this is all self-explanatory, so no further comments, on questions open a GitHub Ticket with the questions tag
 	var (
-		file    string
+		file    = "config/config.yaml"
 		cfgFile *os.File
 		config  CFG
 
@@ -56,18 +50,13 @@ func GetConfig() *CFG {
 		config.DB.Database = os.Getenv("DB_DATABASE")
 		config.DB.TimeZone = os.Getenv("DB_TIMEZONE")
 		config.Email.Host = os.Getenv("Email_HOST")
-		config.Email.ApiKey = os.Getenv("EMAIL_API_KEY")
 		config.Email.SenderEmail = os.Getenv("EMAIL_SENDER_EMAIL")
-		config.Email.SenderEmailPassword = os.Getenv("EMAIL_SENDER_EMAIL_PASSWORD")
-		config.Nextcloud.Host = os.Getenv("NEXTCLOUD_HOST")
-		config.Nextcloud.APIKey = os.Getenv("NEXTCLOUD_API_KEY")
+		config.Email.SenderEmailPassword = os.Getenv("EMAIL_PASSWORD")
 		config.DiscordWebhook = os.Getenv("DISCORD_WEBHOOK")
 		config.TDPUploadKey = os.Getenv("TDPUpload_Key")
 
 		return &config
 	} else if os.Args[1] == "dev" {
-		file = "config/config.yaml"
-
 		cfgFile, err = os.Open(file)
 		if err != nil {
 			log.SetFlags(log.LstdFlags & log.Lshortfile)

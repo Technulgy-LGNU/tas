@@ -29,18 +29,13 @@ func main() {
 		Website:    3,
 		Orders:     3,
 	}
-	var userKey = dbHelpers.BrowserToken{
-		DeviceId: "test",
-		Key:      "test",
-	}
 	var user = dbHelpers.Member{
 		Name:     "Elias Braun",
-		Email:    "elias.braun@gmail.com",
+		Email:    "braunelias@tghd.email",
 		Password: "test",
 		Birthday: time.Now(),
 		Gender:   "male",
 		Perms:    &perms,
-		Tokens:   &[]dbHelpers.BrowserToken{userKey},
 	}
 
 	result := db.Create(&user)

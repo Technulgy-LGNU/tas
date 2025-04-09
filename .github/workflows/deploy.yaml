@@ -53,12 +53,10 @@ jobs:
           echo "DB_DATABASE=${{ secrets.DB_DATABASE }}" >> ./envfile
           echo "DB_TIMEZONE=${{ secrets.DB_TIMEZONE }}" >> ./envfile
           echo "EMAIL_HOST=${{ secrets.EMAIL_HOST }}" >> ./envfile
-          echo "EMAIL_API_KEY=${{ secrets.EMAIL_API_KEY }}" >> ./envfile
           echo "EMAIL_SENDER_EMAIL=${{ secrets.EMAIL_SENDER_EMAIL }}" >> ./envfile
           echo "EMAIL_PASSWORD=${{ secrets.EMAIL_PASSWORD }}" >> ./envfile
-          echo "NEXTCLOUD_HOST=${{ secrets.NEXTCLOUD_HOST }}" >> ./envfile
-          echo "NEXTCLOUD_API_KEY=${{ secrets.NEXTCLOUD_API_KEY }}" >> ./envfile
           echo "DISCORD_HOOK=${{ secrets.DISCORD_HOOK }}" >> ./envfile
+          echo "TDPUpload_Key=${{ secrets.TDPUpload_Key }}" >> ./envfile
 
       - name: Docker Stack Deploy
         uses: cssnr/stack-deploy-action@v1
