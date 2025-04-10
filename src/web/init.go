@@ -39,11 +39,11 @@ func InitWeb(cfg *config.CFG, db *gorm.DB) {
 
 		c = cors.New(cors.Config{
 			AllowOrigins: strings.Join([]string{
-				"tas.technulgy.com",
-				"localhost:3001",
-				"links.technulgy.com",
-				"localhost:3002",
-				"technulgy.com",
+				"https://tas.technulgy.com",
+				"http://localhost:3001",
+				"https://links.technulgy.com",
+				"http://localhost:3002",
+				"https://technulgy.com",
 			}, ","),
 
 			AllowMethods: strings.Join([]string{

@@ -1,5 +1,5 @@
 services:
-  tas-backend:
+  tas:
     image: "ghcr.io/technulgy-lgnu/tas:${GIT_COMMIT_HASH:-latest}"
     environment:
       - "DB_HOST=${DB_HOST}"
