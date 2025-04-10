@@ -30,17 +30,20 @@ services:
       labels:
         - "traefik.enable=true"
         # Tas Backend
-        - "traefik.http.routers.tas-backend.rule=Host(`api.tas.technulgy.com`)"
+        - "traefik.http.routers.tas-backend.rule=Host(`tas.technulgy.com`)"
         - "traefik.http.routers.tas-backend.entrypoints=websecure"
-        - "traefik.http.services.tas-backend.loadbalancer.server.port=3001"
         - "traefik.http.routers.tas-backend.tls=true"
         - "traefik.http.routers.tas-backend.tls.certresolver=cfACME"
+        - "traefik.http.routers.tas-backend.service=tas-backend"
         # Tas Links
         - "traefik.http.routers.tas-links.rule=Host(`links.technulgy.com`)"
         - "traefik.http.routers.tas-links.entrypoints=websecure"
-        - "traefik.http.services.tas-links.loadbalancer.server.port=3002"
         - "traefik.http.routers.tas-links.tls=true"
         - "traefik.http.routers.tas-links.tls.certresolver=cfACME"
+        - "traefik.http.routers.tas-links.service=tas-links"
+        # Services
+        - "traefik.http.services.tas-backend.loadbalancer.server.port=3001"
+        - "traefik.http.services.tas-links.loadbalancer.server.port=3002"
 
 networks:
   traefik-nw:
