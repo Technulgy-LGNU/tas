@@ -2,20 +2,17 @@ services:
   tas-backend:
     image: "ghcr.io/technulgy-lgnu/tas:${GIT_COMMIT_HASH:-latest}"
     environment:
-      - "Database_Host=${DB_HOST}"
-      - "Database_Port=${DB_PORT}"
-      - "Database_Username=${DB_USERNAME}"
-      - "Database_Password=${DB_PASSWORD}"
-      - "Database_Database=${DB_DATABASE}"
-      - "Database_TimeZone=${DB_TIMEZONE}"
-      - "Email_Host=${EMAIL_HOST}"
-      - "Email_ApiKey=${EMAIL_API_KEY}"
-      - "Email_SenderEmail=${EMAIL_SENDER_EMAIL}"
-      - "Email_Password=${EMAIL_PASSWORD}"
-      - "Nextcloud_Host=${NEXTCLOUD_HOST}"
-      - "Nextcloud_ApiKey=${NEXTCLOUD_API_KEY}"
-      - "Discord_Hook=${DISCORD_HOOK}"
-      - "TDPUpload-Key=${TDPUpload_KEY}"
+      - "DB_HOST=${DB_HOST}"
+      - "DB_PORT=${DB_PORT}"
+      - "DB_USERNAME=${DB_USERNAME}"
+      - "DB_PASSWORD=${DB_PASSWORD}"
+      - "DB_DATABASE=${DB_DATABASE}"
+      - "DB_TIMEZONE=${DB_TIMEZONE}"
+      - "EMAIL_HOST=${EMAIL_HOST}"
+      - "EMAIL_SENDER_EMAIL=${EMAIL_SENDER_EMAIL}"
+      - "EMAIL_PASSWORD=${EMAIL_PASSWORD}"
+      - "DISCORD_WEBHOOK=${DISCORD_HOOK}"
+      - "TDPUpload_Key=${TDPUpload_KEY}"
     networks:
       - traefik-nw
     restart: always

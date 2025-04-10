@@ -49,7 +49,7 @@ func GetConfig() *CFG {
 		config.DB.Password = os.Getenv("DB_PASSWORD")
 		config.DB.Database = os.Getenv("DB_DATABASE")
 		config.DB.TimeZone = os.Getenv("DB_TIMEZONE")
-		config.Email.Host = os.Getenv("Email_HOST")
+		config.Email.Host = os.Getenv("EMAIL_HOST")
 		config.Email.SenderEmail = os.Getenv("EMAIL_SENDER_EMAIL")
 		config.Email.SenderEmailPassword = os.Getenv("EMAIL_PASSWORD")
 		config.DiscordWebhook = os.Getenv("DISCORD_WEBHOOK")
