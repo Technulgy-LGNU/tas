@@ -41,13 +41,12 @@ func main() {
 
 		// Create Team Null, if it doesn't exist
 		var team database.Team
-		result := DB.First(&team, 0)
+		result := DB.First(&team, 1)
 		if result.Error != nil {
 			if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 				log.Println("Team Null not found, creating...")
 				var teamNull = database.Team{
 					Model:   gorm.Model{},
-					ID:      0,
 					Name:    "noTeam",
 					League:  "",
 					Members: nil,

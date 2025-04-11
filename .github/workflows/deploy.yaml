@@ -2,7 +2,7 @@ name: pipeline
 on:
   push:
     branches:
-      - "main"
+      - "prod"
 
 permissions:
   packages: write
@@ -61,7 +61,7 @@ jobs:
       - name: Docker Stack Deploy
         uses: cssnr/stack-deploy-action@v1
         with:
-          name: tas-backend
+          name: technulgy-tas
           file: docker-stack.yaml
           host: ${{ secrets.DEPLOY_HOST }}
           user: ${{ secrets.DEPLOY_USER }}
