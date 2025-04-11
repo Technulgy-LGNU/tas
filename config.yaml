@@ -1,0 +1,14 @@
+Database:
+    Host: "cax11-fsn-4.database.tghd.eu"
+    Port: 5432
+    Username: "tas"
+    Password: "^N$f54g4$e$7sH$nfw7@P3$!72*1Qf91"
+    Database: "tas_db_dev"
+    TimeZone: "Europe/Berlin"
+
+Email:
+    Host: "mail.technulgy.com"
+    SenderEmail: "noreply@technulgy.com"
+    Password: "2w@#i231&67D%9h$2T#6&z#cO@6@!!&0"
+
+DiscordWebhook: "https://discord.com/api/webhooks/1356248421761290341/i2q0WALPl12Gjicn-cEBAtmVy9fkHUkYN63qxoPhe6CRViHGVX4FP0g49u4aHnGca8hn"
