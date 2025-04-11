@@ -1,6 +1,6 @@
 # Cache Data
 config/
-.envfile
+.env
 !helpers/config/getConfig.go
 
 # Logs

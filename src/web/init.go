@@ -44,6 +44,7 @@ func InitWeb(cfg *config.CFG, db *gorm.DB) {
 				"https://links.technulgy.com",
 				"http://localhost:3002",
 				"https://technulgy.com",
+				"http://localhost:5173",
 			}, ","),
 
 			AllowMethods: strings.Join([]string{
@@ -54,10 +55,7 @@ func InitWeb(cfg *config.CFG, db *gorm.DB) {
 			}, ","),
 
 			AllowHeaders: strings.Join([]string{
-				"application/json",
-				"Content-Type",
-				"Accept",
-				"Origin",
+				"*",
 			}, ","),
 
 			AllowCredentials: false,
