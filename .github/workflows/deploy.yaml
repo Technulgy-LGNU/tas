@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - "prod"
+  workflow_dispatch:
 
 permissions:
   packages: write
