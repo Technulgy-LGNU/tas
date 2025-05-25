@@ -9,6 +9,8 @@ import (
 
 // DeleteOldSessions Deletes session ids, that are older than thirty days, remember, these devices will be logged out
 // runs twice a day
+// Currently not used due to bugs
+/*
 func DeleteOldSessions(db *gorm.DB) {
 	ticker := time.NewTicker(12 * time.Hour)
 	thirtyDaysAgo := time.Now().AddDate(0, 0, -30)
@@ -26,7 +28,7 @@ func DeleteOldSessions(db *gorm.DB) {
 			}
 		}
 	}()
-}
+} */
 
 // DeleteSoftDeletedUserKeys Deletes every user key, that was soft deleted
 // (maybe including the other dbs as well in the future, if necessary)
