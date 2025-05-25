@@ -163,38 +163,46 @@ func (a *API) checkIfUserIsLoggedIn(c *fiber.Ctx) error {
 	}
 
 	// Check if user is logged in
-	var browserToken database.BrowserToken
-	err = a.DB.Preload("Member").Where("device_id = ? AND key = ?", data.DeviceId, data.Token).First(&browserToken).Error
+	var rToken database.BrowserToken
+	err = a.DB.Preload("Member").Where("device_id = ? AND key = ?", data.DeviceId, data.Token).First(&rToken).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return c.Status(fiber.StatusUnauthorized).JSON("invalid credentials")
+			return c.Status(fiber.StatusForbidden).JSON("user is not logged in")
 		}
 		log.Printf("Error getting browser token: %v\n", err)
 		return c.Status(fiber.StatusInternalServerError).JSON("Error getting browser token")
 	}
 
+	// Use a transaction to make token replacement atomic
+	tx := a.DB.Begin()
+
 	// Create new token
 	var nToken database.BrowserToken
 	nToken.DeviceId = data.DeviceId
 	nToken.Key = util.GenerateSessionToken()
-	nToken.Member = browserToken.Member
-	nToken.MemberID = browserToken.MemberID
-	err = a.DB.Create(&nToken).Error
-	if err != nil {
+	nToken.MemberID = rToken.MemberID
+	if err = tx.Create(&nToken).Error; err != nil {
+		tx.Rollback()
 		log.Printf("Error creating browser token: %v\n", err)
 		return c.Status(fiber.StatusInternalServerError).JSON("Error creating browser token")
 	}
 
 	// Delete old Token
-	err = a.DB.Delete(&browserToken).Error
-	if err != nil {
+	if err = tx.Delete(&rToken).Error; err != nil {
+		tx.Rollback()
 		log.Printf("Error deleting browser token: %v\n", err)
 		return c.Status(fiber.StatusInternalServerError).JSON("Error deleting browser token")
 	}
 
+	if err = tx.Commit().Error; err != nil {
+		tx.Rollback()
+		log.Printf("Error committing transaction: %v\n", err)
+		return c.Status(fiber.StatusInternalServerError).JSON("Error updating token")
+	}
+
 	// Get user permissions
 	var perms database.Permission
-	err = a.DB.Where("member_id = ?", browserToken.MemberID).First(&perms).Error
+	err = a.DB.Where("member_id = ?", rToken.MemberID).First(&perms).Error
 	if err != nil {
 		log.Printf("Error getting user permissions: %v\n", err)
 		return c.Status(fiber.StatusInternalServerError).JSON("Error getting user permissions")

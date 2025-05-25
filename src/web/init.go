@@ -55,10 +55,14 @@ func InitWeb(cfg *config.CFG, db *gorm.DB) {
 			}, ","),
 
 			AllowHeaders: strings.Join([]string{
-				"*",
+				"Content-Type",
+				"Accept",
+				"Origin",
+				"Authorization",
 			}, ","),
 
-			AllowCredentials: false,
+			AllowCredentials: true,
+			MaxAge:           86400,
 		})
 
 		// Monitor
