@@ -47,25 +47,26 @@ if (!isLoginPage || !isResetPasswordPage) {
       )
       .then(res => {
         if (res.status === 200) {
-          Cookies.set('token', res.data.token)
-          Cookies.set('admin', res.data.perms.admin)
-          Cookies.set('members', res.data.perms.members)
-          Cookies.set('teams', res.data.perms.teams)
-          Cookies.set('events', res.data.perms.events)
-          Cookies.set('newsletter', res.data.perms.newsletter)
-          Cookies.set('form', res.data.perms.form)
-          Cookies.set('website', res.data.perms.website)
-          Cookies.set('orders', res.data.perms.orders)
-          Cookies.set('inventory', res.data.perms.inventory)
-          Cookies.set('sponsors', res.data.perms.sponsors)
+          // Store the new token and permissions in cookies
+          Cookies.set('token', res.data.token, { expires: 90, sameSite: 'strict' })
+          Cookies.set('admin', res.data.perms.admin, { expires: 90 })
+          Cookies.set('members', res.data.perms.members, { expires: 90 })
+          Cookies.set('teams', res.data.perms.teams, { expires: 90 })
+          Cookies.set('events', res.data.perms.events, { expires: 90 })
+          Cookies.set('newsletter', res.data.perms.newsletter, { expires: 90 })
+          Cookies.set('form', res.data.perms.form, { expires: 90 })
+          Cookies.set('website', res.data.perms.website, { expires: 90 })
+          Cookies.set('orders', res.data.perms.orders, { expires: 90 })
+          Cookies.set('inventory', res.data.perms.inventory, { expires: 90 })
+          Cookies.set('sponsors', res.data.perms.sponsors, { expires: 90 })
         } else {
-          // Token is not valid, send user to login page
+          // Handle invalid token
           Cookies.remove('token')
           router.push({ name: 'login' })
         }
       })
       .catch(() => {
-        // Token is not valid, send user to login page
+        // Handle errors and redirect to login
         Cookies.remove('token')
         router.push({ name: 'login' })
       })
