@@ -1,0 +1,14 @@
+Database:
+    Host: "psql.example.com"
+    Port: 5432
+    Username: "tas"
+    Password: "password"
+    Database: "tas_db"
+    TimeZone: "Europe/Berlin"
+
+Email:
+    Host: "mail.example.com"
+    SenderEmail: "mail@example.com"
+    Password: "password"
+
+DiscordWebhook: "https://discord.com/api/webhooks/"

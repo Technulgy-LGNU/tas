@@ -30,35 +30,15 @@ const router = createRouter({
       component: () => import('@/views/TeamsView.vue'),
     },
     {
-      path: '/events',
-      name: 'events',
-      component: () => import('@/views/EventsView.vue'),
-    },
-    {
-      path: '/newsletter',
-      name: 'newsletter',
-      component: () => import('@/views/NewsletterView.vue'),
-    },
-    {
       path: '/forms',
       name: 'forms',
       component: () => import('@/views/FormView.vue'),
     },
     {
-      path: '/website',
-      name: 'website',
-      component: () => import('@/views/WebsiteView.vue'),
+      path: '/inventory',
+      name: 'inventory',
+      component: () => import('@/views/InventoryView.vue'),
     },
-    {
-      path: '/orders',
-      name: 'orders',
-      component: () => import('@/views/OrdersView.vue'),
-    },
-    {
-      path: '/sponsors',
-      name: 'sponsors',
-      component: () => import('@/views/SponsorsView.vue'),
-    }
   ],
 })
 

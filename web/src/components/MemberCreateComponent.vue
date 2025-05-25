@@ -17,7 +17,6 @@ interface Member {
   Name: string;
   Email: string;
   Gender: string;
-  Birthday: string;
   TeamId: number;
   Permissions: {
     Login: boolean;
@@ -29,6 +28,7 @@ interface Member {
     Form: number;
     Website: number;
     Order: number;
+    Inventory: number;
     Sponsors: number;
   };
 }
@@ -43,7 +43,6 @@ const memberData = ref<Member>({
   Name: '',
   Email: '',
   Gender: '',
-  Birthday: '20-12-2005',
   TeamId: -1,
   Permissions: {
     Login: false,
@@ -55,6 +54,7 @@ const memberData = ref<Member>({
     Form: 0,
     Website: 0,
     Order: 0,
+    Inventory: 0,
     Sponsors: 0,
   },
 })
@@ -138,10 +138,6 @@ onMounted(fetchTeams())
                 <input v-model="memberData.Email" id="email" type="email" class="input-field border-2 border-b-black rounded-sm" required />
               </div>
               <div class="mb-4">
-                <label for="birthday" class="block">Birthday:</label>
-                <input v-model="memberData.Birthday" id="birthday" type="date" class="input-field border-2 border-b-black rounded-sm" />
-              </div>
-              <div class="mb-4">
                 <label for="gender" class="block">Gender:</label>
                 <select v-model="memberData.Gender" id="gender" class="input-field border-2 border-b-black rounded-sm">
                   <option value="male">Male</option>
@@ -192,6 +188,10 @@ onMounted(fetchTeams())
                 <div>
                   <label for="order">Order: </label>
                   <input v-model="memberData.Permissions.Order" type="number" id="order" min="0" max="3" />
+                </div>
+                <div>
+                  <label for="inventory">Inventory: </label>
+                  <input v-model="memberData.Permissions.Inventory" type="number" id="inventory" min="0" max="3" />
                 </div>
                 <div>
                   <label for="sponsors">Sponsors: </label>

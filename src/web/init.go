@@ -115,8 +115,6 @@ func InitWeb(cfg *config.CFG, db *gorm.DB) {
 	api.Patch("/updateTeam/:id", a.updateTeam)  // <- Team, updates the team with the given id and returns the updated team
 	api.Delete("/deleteTeam/:id", a.deleteTeam) // <- Team, deletes the team with the given id and returns 200
 	// Website
-	api.Post("/tdpUpload", a.postTDPUpload)     // <- TDP Upload, returns 200 if successful
-	api.Get("/getTDPs", a.getTDPs)              // -> TDPs, returns all TDPs
 	api.Post("/newForm", a.postForm)            // <- Form, returns 200 if successful
 	api.Get("/getForms", a.getForms)            // -> Forms, returns all forms
 	api.Get("/getForm/:id", a.getForm)          // -> Form, returns the form with the given id
@@ -125,6 +123,15 @@ func InitWeb(cfg *config.CFG, db *gorm.DB) {
 
 	// Orders
 
+	// Inventory
+	api.Get("/inventories", a.getInventories)                                      // -> All categories with inventory entries
+	api.Post("/inventory/category/create", a.createCategory)                       // <- Create a new category
+	api.Post("/inventory/category/update/:id", a.updateCategory)                   // <- Update a category
+	api.Delete("/inventory/category/delete/:id", a.deleteCategory)                 // <- Delete a category
+	api.Post("/inventory/entry/create/:categoryID", a.createInventoryEntry)        // <- Create a new entry in a category
+	api.Post("/inventory/entry/update/:id", a.updateInventoryEntry)                // <- Update an entry
+	api.Delete("/inventory/entry/delete/:id", a.deleteInventoryEntry)              // <- Delete an entry
+	api.Post("/inventory/entry/updateAmount/:id/:amount", a.updateInventoryAmount) // <- Updates the amount of one entry
 	// Events
 	api.Get("/getEvents", a.getEvents)                // -> Events, returns all events
 	api.Get("/getEvent/:id", a.getEvent)              // -> Event, returns the event with the given id

@@ -74,6 +74,12 @@ func CheckPermissions(headers map[string][]string, level int, subPart string, db
 		} else {
 			return false
 		}
+	case Inventory:
+		if perms.Inventory >= level || perms.Admin {
+			return true
+		} else {
+			return false
+		}
 	case Newsletter:
 		if perms.Newsletter >= level || perms.Admin {
 			return true

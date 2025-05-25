@@ -7,7 +7,6 @@ import (
 	"log"
 	"tas/src/database"
 	"tas/src/util"
-	"time"
 )
 
 // -> All members
@@ -17,7 +16,6 @@ func (a *API) getMembers(c *fiber.Ctx) error {
 		Name        string `json:"Name"`
 		Email       string `json:"Email"`
 		Gender      string `json:"Gender"`
-		Birthday    string `json:"´Birthday"`
 		TeamID      uint64 `json:"TeamId"`
 		Permissions struct {
 			Login      bool `json:"Login"`
@@ -29,6 +27,7 @@ func (a *API) getMembers(c *fiber.Ctx) error {
 			Form       int  `json:"Form"`
 			Website    int  `json:"Website"`
 			Orders     int  `json:"Orders"`
+			Inventory  int  `json:"Inventory"`
 			Sponsors   int  `json:"Sponsors"`
 		} `json:"permissions"`
 	}
@@ -63,7 +62,6 @@ func (a *API) getMembers(c *fiber.Ctx) error {
 				dataToSend.Name = member.Name
 				dataToSend.Email = member.Email
 				dataToSend.Gender = member.Gender
-				dataToSend.Birthday = member.Birthday.Format("02-04-2006")
 				dataToSend.TeamID = member.TeamID
 				dataToSend.Permissions.Login = perm.Login
 				dataToSend.Permissions.Admin = perm.Admin
@@ -74,6 +72,7 @@ func (a *API) getMembers(c *fiber.Ctx) error {
 				dataToSend.Permissions.Form = perm.Form
 				dataToSend.Permissions.Website = perm.Website
 				dataToSend.Permissions.Orders = perm.Orders
+				dataToSend.Permissions.Inventory = perm.Inventory
 				dataToSend.Permissions.Sponsors = perm.Sponsors
 				membersWithPerms = append(membersWithPerms, dataToSend)
 			}
@@ -109,12 +108,11 @@ func (a *API) getMember(c *fiber.Ctx) error {
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"Id":       member.ID,
-		"Name":     member.Name,
-		"Email":    member.Email,
-		"Gender":   member.Gender,
-		"Birthday": member.Birthday.Format("02-04-2006"),
-		"TeamId":   member.TeamID,
+		"Id":     member.ID,
+		"Name":   member.Name,
+		"Email":  member.Email,
+		"Gender": member.Gender,
+		"TeamId": member.TeamID,
 		"Permissions": fiber.Map{
 			"Login":      perms.Login,
 			"Admin":      perms.Admin,
@@ -125,6 +123,7 @@ func (a *API) getMember(c *fiber.Ctx) error {
 			"Form":       perms.Form,
 			"Website":    perms.Website,
 			"Orders":     perms.Orders,
+			"Inventory":  perms.Inventory,
 			"Sponsors":   perms.Sponsors,
 		},
 	})
@@ -138,8 +137,7 @@ func (a *API) createMember(c *fiber.Ctx) error {
 			Email       string `json:"Email"`
 			Password    string `json:"Password"`
 			Gender      string `json:"Gender"`
-			Birthday    string `json:"Birthday"`
-			TeamID      uint64 `json:"Team_id"`
+			TeamID      uint64 `json:"TeamId"`
 			Permissions struct {
 				Login      bool `json:"Login"`
 				Members    int  `json:"Members"`
@@ -149,6 +147,7 @@ func (a *API) createMember(c *fiber.Ctx) error {
 				Form       int  `json:"Form"`
 				Website    int  `json:"Website"`
 				Orders     int  `json:"Orders"`
+				Inventory  int  `json:"Inventory"`
 				Sponsors   int  `json:"Sponsors"`
 			} `json:"permissions"`
 		}{}
@@ -163,7 +162,7 @@ func (a *API) createMember(c *fiber.Ctx) error {
 		log.Printf("Error parsing request body: %v\n", err)
 		return c.Status(fiber.StatusBadRequest).JSON("invalid request")
 	}
-	if data.Name == "" || data.Email == "" || data.Gender != "male" && data.Gender != "female" && data.Gender != "divers" || data.Birthday == "" {
+	if data.Name == "" || data.Email == "" || data.Gender != "male" && data.Gender != "female" && data.Gender != "divers" {
 		return c.Status(fiber.StatusBadRequest).JSON("invalid request")
 	}
 
@@ -177,20 +176,12 @@ func (a *API) createMember(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON("Error checking if user with this email already exists")
 	}
 
-	// Reformat the birthday to the correct format (Incoming: dd-mm-yyyy, Database: time.Time)
-	var formatedDate time.Time
-	formatedDate, err = time.Parse("2006-04-02", data.Birthday)
-	if err != nil {
-		log.Printf("Error parsing birthday: %v\n", err)
-		return c.Status(fiber.StatusBadRequest).JSON("invalid request")
-	}
 	// Create the new member
 	newMember := database.Member{
 		Name:     data.Name,
 		Email:    data.Email,
 		Password: data.Password,
 		Gender:   data.Gender,
-		Birthday: formatedDate,
 		TeamID:   data.TeamID,
 		Perms: &database.Permission{
 			Login:      data.Permissions.Login,
@@ -202,6 +193,7 @@ func (a *API) createMember(c *fiber.Ctx) error {
 			Form:       data.Permissions.Form,
 			Website:    data.Permissions.Website,
 			Orders:     data.Permissions.Orders,
+			Inventory:  data.Permissions.Inventory,
 			Sponsors:   data.Permissions.Sponsors,
 		},
 	}
@@ -221,7 +213,6 @@ func (a *API) updateMember(c *fiber.Ctx) error {
 			Name        string `json:"Name"`
 			Email       string `json:"Email"`
 			Gender      string `json:"Gender"`
-			Birthday    string `json:"Birthday"`
 			TeamID      uint64 `json:"TeamId"`
 			Permissions struct {
 				Login      bool `json:"Login"`
@@ -232,6 +223,7 @@ func (a *API) updateMember(c *fiber.Ctx) error {
 				Form       int  `json:"Form"`
 				Website    int  `json:"Website"`
 				Orders     int  `json:"Orders"`
+				Inventory  int  `json:"Inventory"`
 				Sponsors   int  `json:"Sponsors"`
 			} `json:"Permissions"`
 		}{}
@@ -246,7 +238,7 @@ func (a *API) updateMember(c *fiber.Ctx) error {
 		log.Printf("Error parsing request body: %v\n", err)
 		return c.Status(fiber.StatusBadRequest).JSON("invalid request")
 	}
-	if data.Name == "" || data.Email == "" || data.Gender == "" || data.Birthday == "" {
+	if data.Name == "" || data.Email == "" || data.Gender == "" {
 		return c.Status(fiber.StatusBadRequest).JSON("invalid request")
 	}
 
@@ -261,14 +253,6 @@ func (a *API) updateMember(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON("Error checking if user with this id exists")
 	}
 
-	// Reformat the birthday to the correct format (Incoming: dd-mm-yyyy, Database: time.Time)
-	var formatedDate time.Time
-	formatedDate, err = time.Parse("2006-04-02", data.Birthday)
-	if err != nil {
-		log.Printf("Error parsing birthday: %v\n", err)
-		return c.Status(fiber.StatusBadRequest).JSON("invalid request")
-	}
-
 	// Update the member
 	if data.Name != existingMember.Name {
 		existingMember.Name = data.Name
@@ -278,9 +262,6 @@ func (a *API) updateMember(c *fiber.Ctx) error {
 	}
 	if data.Gender != existingMember.Gender {
 		existingMember.Gender = data.Gender
-	}
-	if formatedDate != existingMember.Birthday {
-		existingMember.Birthday = formatedDate
 	}
 	if data.TeamID != existingMember.TeamID {
 		existingMember.TeamID = data.TeamID
@@ -326,6 +307,9 @@ func (a *API) updateMember(c *fiber.Ctx) error {
 	if data.Permissions.Orders != perms.Orders {
 		perms.Orders = data.Permissions.Orders
 	}
+	if data.Permissions.Inventory != perms.Inventory {
+		perms.Inventory = data.Permissions.Inventory
+	}
 	if data.Permissions.Sponsors != perms.Sponsors {
 		perms.Sponsors = data.Permissions.Sponsors
 	}
@@ -337,11 +321,10 @@ func (a *API) updateMember(c *fiber.Ctx) error {
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"Name":     existingMember.Name,
-		"Email":    existingMember.Email,
-		"Gender":   existingMember.Gender,
-		"Birthday": existingMember.Birthday.Format("02-04-2006"),
-		"TeamID":   existingMember.TeamID,
+		"Name":   existingMember.Name,
+		"Email":  existingMember.Email,
+		"Gender": existingMember.Gender,
+		"TeamID": existingMember.TeamID,
 		"Permissions": fiber.Map{
 			"Login":      perms.Login,
 			"Admin":      perms.Admin,
@@ -352,6 +335,7 @@ func (a *API) updateMember(c *fiber.Ctx) error {
 			"Form":       perms.Form,
 			"Website":    perms.Website,
 			"Orders":     perms.Orders,
+			"Inventory":  perms.Inventory,
 			"Sponsors":   perms.Sponsors,
 		},
 	})

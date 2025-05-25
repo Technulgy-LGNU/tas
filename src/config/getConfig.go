@@ -24,8 +24,6 @@ type CFG struct {
 	} `yaml:"Email"`
 
 	DiscordWebhook string `yaml:"DiscordWebhook"`
-
-	TDPUploadKey string `yaml:"TDPUpload_Key"`
 }
 
 // GetConfig
@@ -35,7 +33,7 @@ type CFG struct {
 func GetConfig() *CFG {
 	// I think, this is all self-explanatory, so no further comments, on questions open a GitHub Ticket with the questions tag
 	var (
-		file    = "config/config.yaml"
+		file    = "config.yaml"
 		cfgFile *os.File
 		config  CFG
 
@@ -53,7 +51,6 @@ func GetConfig() *CFG {
 		config.Email.SenderEmail = os.Getenv("EMAIL_SENDER_EMAIL")
 		config.Email.SenderEmailPassword = os.Getenv("EMAIL_PASSWORD")
 		config.DiscordWebhook = os.Getenv("DISCORD_WEBHOOK")
-		config.TDPUploadKey = os.Getenv("TDPUpload_Key")
 
 		return &config
 	} else if os.Args[1] == "dev" {

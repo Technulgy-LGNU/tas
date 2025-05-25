@@ -48,25 +48,6 @@ func DeleteSoftDeletedUserKeys(db *gorm.DB) {
 	}()
 }
 
-// DeleteOldTDPs Deletes TDPs that were already soft deleted and are older than 30 days
-// runs once a day
-func DeleteOldTDPs(db *gorm.DB) {
-	ticker := time.NewTicker(24 * time.Hour)
-	thirtyDaysAgo := time.Now().AddDate(0, 0, -30)
-	go func() {
-		<-ticker.C
-		var tdp []database.TDPList
-		err := db.Find(&tdp).Where("deleted_at < ?", thirtyDaysAgo).Error
-		if err != nil {
-			log.SetFlags(log.LstdFlags | log.Lshortfile)
-			log.Printf("Error deleting old TDPs: %v\n", err)
-		}
-		for _, t := range tdp {
-			db.Unscoped().Delete(&t)
-		}
-	}()
-}
-
 // DeleteOldForms Deletes forms that were already soft deleted and are older than 3 months
 // runs once a day
 func DeleteOldForms(db *gorm.DB) {

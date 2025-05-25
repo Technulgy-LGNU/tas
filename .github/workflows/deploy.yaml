@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - "prod"
+  workflow_dispatch:
 
 permissions:
   packages: write
@@ -45,18 +46,18 @@ jobs:
 
       - name: create env file
         run: |
-          echo "GIT_COMMIT_HASH=${{ github.sha }}" >> ./envfile
-          echo "DB_HOST=${{ secrets.DB_HOST }}" >> ./envfile
-          echo "DB_PORT=${{ secrets.DB_PORT }}" >> ./envfile
-          echo "DB_USERNAME=${{ secrets.DB_USERNAME }}" >> ./envfile
-          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> ./envfile
-          echo "DB_DATABASE=${{ secrets.DB_DATABASE }}" >> ./envfile
-          echo "DB_TIMEZONE=${{ secrets.DB_TIMEZONE }}" >> ./envfile
-          echo "EMAIL_HOST=${{ secrets.EMAIL_HOST }}" >> ./envfile
-          echo "EMAIL_SENDER_EMAIL=${{ secrets.EMAIL_SENDER_EMAIL }}" >> ./envfile
-          echo "EMAIL_PASSWORD=${{ secrets.EMAIL_PASSWORD }}" >> ./envfile
-          echo "DISCORD_HOOK=${{ secrets.DISCORD_HOOK }}" >> ./envfile
-          echo "TDPUpload_Key=${{ secrets.TDPUpload_Key }}" >> ./envfile
+          echo GIT_COMMIT_HASH="${{ github.sha }}" >> ./.env
+          echo DB_HOST="${{ secrets.DB_HOST }}" >> ./.env
+          echo DB_PORT="${{ secrets.DB_PORT }}" >> ./.env
+          echo DB_USERNAME="${{ secrets.DB_USERNAME }}" >> ./.env
+          echo DB_PASSWORD="${{ secrets.DB_PASSWORD }}" >> ./.env
+          echo DB_DATABASE="${{ secrets.DB_DATABASE }}" >> ./.env
+          echo DB_TIMEZONE="${{ secrets.DB_TIMEZONE }}" >> ./.env
+          echo EMAIL_HOST="${{ secrets.EMAIL_HOST }}" >> ./.env
+          echo EMAIL_SENDER_EMAIL="${{ secrets.EMAIL_SENDER_EMAIL }}" >> ./.env
+          echo EMAIL_PASSWORD="${{ secrets.EMAIL_PASSWORD }}" >> ./.env
+          echo DISCORD_HOOK="${{ secrets.DISCORD_HOOK }}" >> ./.env
+          echo TDPUpload_Key="${{ secrets.TDPUpload_Key }}" >> ./.env
 
       - name: Docker Stack Deploy
         uses: cssnr/stack-deploy-action@v1
@@ -66,4 +67,4 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           user: ${{ secrets.DEPLOY_USER }}
           ssh_key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
-          env_file: ./envfile
+          env_file: ./.env
