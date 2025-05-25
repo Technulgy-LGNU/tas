@@ -111,6 +111,7 @@ func (a *API) login(c *fiber.Ctx) error {
 			"form":       perms.Form,
 			"website":    perms.Website,
 			"orders":     perms.Orders,
+			"inventory":  perms.Inventory,
 			"sponsors":   perms.Sponsors,
 		},
 	})
@@ -172,6 +173,25 @@ func (a *API) checkIfUserIsLoggedIn(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON("Error getting browser token")
 	}
 
+	// Create new token
+	var nToken database.BrowserToken
+	nToken.DeviceId = data.DeviceId
+	nToken.Key = util.GenerateSessionToken()
+	nToken.Member = browserToken.Member
+	nToken.MemberID = browserToken.MemberID
+	err = a.DB.Create(&nToken).Error
+	if err != nil {
+		log.Printf("Error creating browser token: %v\n", err)
+		return c.Status(fiber.StatusInternalServerError).JSON("Error creating browser token")
+	}
+
+	// Delete old Token
+	err = a.DB.Delete(&browserToken).Error
+	if err != nil {
+		log.Printf("Error deleting browser token: %v\n", err)
+		return c.Status(fiber.StatusInternalServerError).JSON("Error deleting browser token")
+	}
+
 	// Get user permissions
 	var perms database.Permission
 	err = a.DB.Where("member_id = ?", browserToken.MemberID).First(&perms).Error
@@ -181,6 +201,7 @@ func (a *API) checkIfUserIsLoggedIn(c *fiber.Ctx) error {
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"token": nToken.Key,
 		"perms": fiber.Map{
 			"login":      perms.Login,
 			"admin":      perms.Admin,
@@ -191,6 +212,7 @@ func (a *API) checkIfUserIsLoggedIn(c *fiber.Ctx) error {
 			"form":       perms.Form,
 			"website":    perms.Website,
 			"orders":     perms.Orders,
+			"inventory":  perms.Inventory,
 			"sponsors":   perms.Sponsors,
 		},
 	})

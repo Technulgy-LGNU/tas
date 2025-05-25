@@ -1,7 +1,7 @@
 package util
 
 import (
-	"fmt"
+	"log"
 	"time"
 )
 
@@ -14,5 +14,5 @@ func (m *MST) StartTimer() {
 }
 
 func (m *MST) ElapsedTime() {
-	fmt.Printf("Total startup time : %v\n", time.Since(m.time))
+	log.Printf("Total startup time : %v\n", time.Since(m.time))
 }

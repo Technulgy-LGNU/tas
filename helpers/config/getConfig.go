@@ -30,8 +30,6 @@ type CFG struct {
 	} `yaml:"Nextcloud"`
 
 	DiscordWebhook string `yaml:"DiscordWebhook"`
-
-	TDPUploadKey string `yaml:"TDPUpload_Key"`
 }
 
 // GetConfig
@@ -62,11 +60,10 @@ func GetConfig() *CFG {
 		config.Nextcloud.Host = os.Getenv("NEXTCLOUD_HOST")
 		config.Nextcloud.APIKey = os.Getenv("NEXTCLOUD_API_KEY")
 		config.DiscordWebhook = os.Getenv("DISCORD_WEBHOOK")
-		config.TDPUploadKey = os.Getenv("TDPUpload_Key")
 
 		return &config
 	} else if os.Args[1] == "dev" {
-		file = "../config/config.yaml"
+		file = "../config.yaml"
 
 		cfgFile, err = os.Open(file)
 		if err != nil {

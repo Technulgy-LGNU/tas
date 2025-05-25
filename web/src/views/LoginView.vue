@@ -23,15 +23,16 @@ const handleLogin = async () => {
       .then((res) => {
         if (res.status === 200) {
           Cookies.set('token', res.data.token)
-          Cookies.set('admin', res.data.perms.admin);
-          Cookies.set('members', res.data.perms.members);
-          Cookies.set('teams', res.data.perms.teams);
-          Cookies.set('events', res.data.perms.events);
-          Cookies.set('newsletter', res.data.perms.newsletter);
-          Cookies.set('form', res.data.perms.form);
-          Cookies.set('website', res.data.perms.website);
-          Cookies.set('orders', res.data.perms.orders);
-          Cookies.set('sponsors', res.data.perms.sponsors);
+          Cookies.set('admin', res.data.perms.admin)
+          Cookies.set('members', res.data.perms.members)
+          Cookies.set('teams', res.data.perms.teams)
+          Cookies.set('events', res.data.perms.events)
+          Cookies.set('newsletter', res.data.perms.newsletter)
+          Cookies.set('form', res.data.perms.form)
+          Cookies.set('website', res.data.perms.website)
+          Cookies.set('orders', res.data.perms.orders)
+          Cookies.set('inventory', res.data.perms.inventory)
+          Cookies.set('sponsors', res.data.perms.sponsors)
           router.push({ name: 'home' })
         } else {
           popUp.value?.show("Login failed")

@@ -29,7 +29,7 @@ if (!isLoginPage || !isResetPasswordPage) {
   // Check if the token cookies exists and if not send user to login page
   const token = Cookies.get('token')
   if (token === undefined || token.length === 0) {
-    router.push('/login')
+    router.push({ name: 'login' })
   } else {
     // Check if the token is still valid against backend
     axios
@@ -47,25 +47,27 @@ if (!isLoginPage || !isResetPasswordPage) {
       )
       .then(res => {
         if (res.status === 200) {
-          Cookies.set('admin', res.data.perms.admin);
-          Cookies.set('members', res.data.perms.members);
-          Cookies.set('teams', res.data.perms.teams);
-          Cookies.set('events', res.data.perms.events);
-          Cookies.set('newsletter', res.data.perms.newsletter);
-          Cookies.set('form', res.data.perms.form);
-          Cookies.set('website', res.data.perms.website);
-          Cookies.set('orders', res.data.perms.orders);
-          Cookies.set('sponsors', res.data.perms.sponsors);
+          Cookies.set('token', res.data.token)
+          Cookies.set('admin', res.data.perms.admin)
+          Cookies.set('members', res.data.perms.members)
+          Cookies.set('teams', res.data.perms.teams)
+          Cookies.set('events', res.data.perms.events)
+          Cookies.set('newsletter', res.data.perms.newsletter)
+          Cookies.set('form', res.data.perms.form)
+          Cookies.set('website', res.data.perms.website)
+          Cookies.set('orders', res.data.perms.orders)
+          Cookies.set('inventory', res.data.perms.inventory)
+          Cookies.set('sponsors', res.data.perms.sponsors)
         } else {
           // Token is not valid, send user to login page
           Cookies.remove('token')
-          router.push('/login')
+          router.push({ name: 'login' })
         }
       })
       .catch(() => {
         // Token is not valid, send user to login page
         Cookies.remove('token')
-        router.push('/login')
+        router.push({ name: 'login' })
       })
   }
 }
