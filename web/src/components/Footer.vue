@@ -10,7 +10,7 @@ import { GitHubIcon} from 'vue3-simple-icons'
       <a href="mailto:contact@technulgy.com" aria-label="Email">
         <EnvelopeIcon class="w-6 h-6" />
       </a>
-      <a href="https://github.com/technulgy-lgnu/" target="_blank" aria-label="GitHub">
+      <a href="https://github.com/technulgy-lgnu/tas/" target="_blank" aria-label="GitHub">
         <GitHubIcon class="w-6 h-6" />
       </a>
     </div>

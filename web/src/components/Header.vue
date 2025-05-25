@@ -36,6 +36,7 @@ const logout = async () => {
         Cookies.remove("form")
         Cookies.remove("website")
         Cookies.remove("orders")
+        Cookies.remove("inventory")
         Cookies.remove("sponsors")
         router.push({ name: "login" })
       });
@@ -58,12 +59,8 @@ const logout = async () => {
         <router-link to="/" class="hover:text-gray-300" :class="{ 'text-gray-300': props.page === 'Dashboard'}">Dashboard</router-link>
         <router-link :v-if="Cookies.get('admin') === 'true' || Number(Cookies.get('members')) >= 1" to="/members" class="hover:text-gray-300" :class="{ 'text-gray-300': props.page === 'Members'}">Members</router-link>
         <router-link :v-if="Cookies.get('admin') === 'true' || Number(Cookies.get('teams')) >= 1" to="/teams" class="hover:text-gray-300" :class="{ 'text-gray-300': props.page === 'Teams'}">Teams</router-link>
-        <router-link :v-if="Cookies.get('admin') === 'true' || Number(Cookies.get('events')) >= 1" to="/events" class="hover:text-gray-300" :class="{ 'text-gray-300': props.page === 'Events'}">Events</router-link>
-        <router-link :v-if="Cookies.get('admin') === 'true' || Number(Cookies.get('newsletter')) >= 1" to="/newsletter" class="hover:text-gray-300" :class="{ 'text-gray-300': props.page === 'Newsletter'}">Newsletter</router-link>
         <router-link :v-if="Cookies.get('admin') === 'true' || Number(Cookies.get('forms')) >= 1" to="/forms" class="hover:text-gray-300" :class="{ 'text-gray-300': props.page === 'Forms'}">Forms</router-link>
-        <router-link :v-if="Cookies.get('admin') === 'true' || Number(Cookies.get('website')) >= 1" to="/website" class="hover:text-gray-300" :class="{ 'text-gray-300': props.page === 'Website'}">Website</router-link>
-        <router-link :v-if="Cookies.get('admin') === 'true' || Number(Cookies.get('orders')) >= 1" to="/orders" class="hover:text-gray-300" :class="{ 'text-gray-300': props.page === 'Orders'}">Orders</router-link>
-        <router-link :v-if="Cookies.get('admin') === 'true' || Number(Cookies.get('sponsors')) >= 1" to="/sponsors" class="hover:text-gray-300" :class="{ 'text-gray-300': props.page === 'Sponsors'}">Sponsors</router-link>
+        <router-link :v-if="Cookies.get('admin') === 'true' || Number(Cookies.get('inventory')) >= 1" to="/inventory" lass="hover:text-gray-300" :class="{ 'text-gray-300': props.page === 'Inventory'}">Inventory</router-link>
       </nav>
 
       <!-- Logout Button -->
