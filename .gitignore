@@ -1,7 +1,6 @@
 # Cache Data
-config/
+config.yaml
 .env
-!helpers/config/getConfig.go
 
 # Logs
 logs
