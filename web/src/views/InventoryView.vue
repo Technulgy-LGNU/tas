@@ -93,12 +93,15 @@ onMounted(async () => {
       <div class="max-w-7xl mx-auto">
         <h2 class="text-2xl font-semibold mb-4">Inventory Management</h2>
         <input
+          v-if="Cookies.get('admin') === 'true' || Number(Cookies.get('inventory')) >= 3"
           v-model="newCategory"
           class="border p-1 rounded"
           placeholder="New Category"
         />
-        <button @click="createCategory"
-                class="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded">
+        <button
+          v-if="Cookies.get('admin') === 'true' || Number(Cookies.get('inventory')) >= 3"
+          @click="createCategory"
+          class="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded">
           Create
         </button>
       </div>

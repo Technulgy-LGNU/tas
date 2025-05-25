@@ -2,6 +2,7 @@
 import axios from 'axios'
 import { type PropType, ref } from 'vue'
 import Cookies from 'js-cookie'
+import router from '@/router'
 
 interface Entry {
   id: number
@@ -56,7 +57,12 @@ const editOrCreate = async () => {
         emit('close')
         emit('msg', `Successfully ${props.mode} entry`)
       })
-  } catch (error) {
+  } catch (error: any) {
+    if (error.response.status === 401) {
+      emit('msg', 'Unauthorized')
+      Cookies.remove('token')
+      await router.push({ name: 'login' })
+    }
     console.log(error)
     emit('msg', 'Error creating entry')
   }

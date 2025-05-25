@@ -15,7 +15,6 @@ type Member struct {
 	Name     string
 	Email    string
 	Password string
-	Birthday time.Time
 	Gender   string
 	Tokens   *[]BrowserToken
 	Perms    *Permission

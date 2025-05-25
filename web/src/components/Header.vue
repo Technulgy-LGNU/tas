@@ -57,10 +57,10 @@ const logout = async () => {
       <!-- Navigation (Desktop) -->
       <nav class="hidden md:flex space-x-6">
         <router-link to="/" class="hover:text-gray-300" :class="{ 'text-gray-300': props.page === 'Dashboard'}">Dashboard</router-link>
-        <router-link :v-if="Cookies.get('admin') === 'true' || Number(Cookies.get('members')) >= 1" to="/members" class="hover:text-gray-300" :class="{ 'text-gray-300': props.page === 'Members'}">Members</router-link>
-        <router-link :v-if="Cookies.get('admin') === 'true' || Number(Cookies.get('teams')) >= 1" to="/teams" class="hover:text-gray-300" :class="{ 'text-gray-300': props.page === 'Teams'}">Teams</router-link>
-        <router-link :v-if="Cookies.get('admin') === 'true' || Number(Cookies.get('forms')) >= 1" to="/forms" class="hover:text-gray-300" :class="{ 'text-gray-300': props.page === 'Forms'}">Forms</router-link>
-        <router-link :v-if="Cookies.get('admin') === 'true' || Number(Cookies.get('inventory')) >= 1" to="/inventory" lass="hover:text-gray-300" :class="{ 'text-gray-300': props.page === 'Inventory'}">Inventory</router-link>
+        <router-link v-if="Cookies.get('admin') === 'true' || Number(Cookies.get('members')) >= 1" to="/members" class="hover:text-gray-300" :class="{ 'text-gray-300': props.page === 'Members'}">Members</router-link>
+        <router-link v-if="Cookies.get('admin') === 'true' || Number(Cookies.get('teams')) >= 1" to="/teams" class="hover:text-gray-300" :class="{ 'text-gray-300': props.page === 'Teams'}">Teams</router-link>
+        <router-link v-if="Cookies.get('admin') === 'true' || Number(Cookies.get('forms')) >= 1" to="/forms" class="hover:text-gray-300" :class="{ 'text-gray-300': props.page === 'Forms'}">Forms</router-link>
+        <router-link v-if="Cookies.get('admin') === 'true' || Number(Cookies.get('inventory')) >= 1" to="/inventory" lass="hover:text-gray-300" :class="{ 'text-gray-300': props.page === 'Inventory'}">Inventory</router-link>
       </nav>
 
       <!-- Logout Button -->

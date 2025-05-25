@@ -4,6 +4,7 @@ import { type PropType, ref } from 'vue'
 import axios from 'axios'
 import Cookies from 'js-cookie'
 import InventoryEntryCreateEditComponent from '@/components/InventoryEntryCreateEditComponent.vue'
+import router from '@/router'
 
 interface Entry {
   id: number
@@ -49,7 +50,12 @@ const editCategory = async (id: number, name: string) => {
         emits('update')
         emits('error', 'Successfully updated category.')
       })
-  } catch (error) {
+  } catch (error: any) {
+    if (error.response.status === 401) {
+      emits('error', 'Unauthorized')
+      Cookies.remove('token')
+      await router.push({ name: 'login' })
+    }
     console.error(error)
     emits('error', 'Error updating category')
   }
@@ -69,7 +75,12 @@ const deleteCategory = async (id: number) => {
       emits('update')
       emits('error', 'Successfully deleted category')
     })
-  } catch (error) {
+  } catch (error: any) {
+    if (error.response.status === 401) {
+      emits('error', 'Unauthorized')
+      Cookies.remove('token')
+      await router.push({ name: 'login' })
+    }
     emits('error', 'Error deleting category')
     console.error(error)
   }
@@ -96,7 +107,37 @@ const deleteEntry = async (id: number) => {
         emits('error', 'Successfully deleted entry')
         emits('update')
       })
-  } catch (error) {
+  } catch (error: any) {
+    if (error.response.status === 401) {
+      emits('error', 'Unauthorized')
+      Cookies.remove('token')
+      await router.push({ name: 'login' })
+    }
+    emits('error', 'Error deleting entry')
+    console.error(error)
+  }
+}
+
+const updateQuantity = async (id: number, quantity: number) => {
+  try {
+    await axios
+      .post(`/api/inventory/entry/updateAmount/${id}/${quantity}`, {}, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${Cookies.get('token')}`
+        }
+      })
+    .then(() => {
+      emits('update')
+      emits('error', 'Successfully updated entry')
+    })
+  } catch (error: any) {
+    if (error.response.status === 401) {
+      emits('error', 'Unauthorized')
+      Cookies.remove('token')
+      await router.push({ name: 'login' })
+    }
     emits('error', 'Error deleting entry')
     console.error(error)
   }
@@ -110,9 +151,17 @@ const deleteEntry = async (id: number) => {
       <div class="flex items-center space-x-3">
         <!-- Editable name input -->
         <input
+          v-if="Cookies.get('admin') === 'true' || Number(Cookies.get('inventory')) >= 3"
           v-model="name"
           type="text"
           class="border border-gray-300 rounded-md px-3 py-1 text-2xl font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <input
+          v-else
+          v-model="name"
+          type="text"
+          class="border border-gray-300 rounded-md px-3 py-1 text-2xl font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          readonly
         />
         <!-- Entries count badge -->
         <span
@@ -129,18 +178,21 @@ const deleteEntry = async (id: number) => {
           {{ isOpen ? 'Collapse' : 'Expand' }}
         </button>
         <button
+          v-if="Cookies.get('admin') === 'true' || Number(Cookies.get('inventory')) >= 3"
           @click="editCategory(props.inv?.id, name)"
           class="px-3 py-1 text-sm bg-gray-800 text-white rounded hover:bg-gray-700 transition"
         >
           Update
         </button>
         <button
+          v-if="Cookies.get('admin') === 'true' || Number(Cookies.get('inventory')) >= 2"
           @click="editCreate = true; mode = 'create'"
           class="px-3 py-1 text-sm bg-gray-800 text-white rounded hover:bg-gray-700 transition"
         >
           Create Entry
         </button>
         <button
+          v-if="Cookies.get('admin') === 'true' || Number(Cookies.get('inventory')) >= 3"
           @click="deleteCategory(props.inv?.id)"
           class="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition"
         >
@@ -171,18 +223,32 @@ const deleteEntry = async (id: number) => {
                 class="text-blue-600 hover:underline font-medium"
               >{{ entry.name }}</a
               >
-              <span class="text-sm text-gray-600">Qty: {{ entry.quantity }}</span>
+              <input
+                v-if="Cookies.get('admin') === 'true' || Number(Cookies.get('inventory')) >= 1"
+                v-model="entry.quantity"
+                type="number"
+                class="border border-gray-300 rounded-md px-3 py-1 text-2xl font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
             </div>
             <div class="flex justify-between items-center text-sm text-gray-500 mb-2">
               <span>Location: {{ entry.location }}</span>
               <div class="space-x-2">
                 <button
+                  v-if="Cookies.get('admin') === 'true' || Number(Cookies.get('inventory')) >= 1"
+                  @click="updateQuantity(entry.id, entry.quantity)"
+                  class="px-2 py-0.5 bg-green-500 text-white rounded hover:bg-green-600 transition text-xs"
+                >
+                  Update
+                </button>
+                <button
+                  v-if="Cookies.get('admin') === 'true' || Number(Cookies.get('inventory')) >= 2"
                   @click="editCreate = true; entryToEdit = entry"
                   class="px-2 py-0.5 bg-green-500 text-white rounded hover:bg-green-600 transition text-xs"
                 >
                   Edit
                 </button>
                 <button
+                  v-if="Cookies.get('admin') === 'true' || Number(Cookies.get('inventory')) >= 3"
                   @click="deleteEntry(entry.id)"
                   class="px-2 py-0.5 bg-red-600 text-white rounded hover:bg-red-700 transition text-xs"
                 >
