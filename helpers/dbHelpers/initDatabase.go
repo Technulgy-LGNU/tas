@@ -15,14 +15,13 @@ type Member struct {
 	Name     string
 	Email    string
 	Password string
-	Birthday time.Time
 	Gender   string
 	Tokens   *[]BrowserToken
 	Perms    *Permission
 	Request  *[]Request
 
-	TeamID *uint64 `gorm:"index"`
-	Team   *Team
+	TeamID uint64 `gorm:"index"`
+	Team   Team
 }
 
 type BrowserToken struct {
@@ -37,7 +36,7 @@ type BrowserToken struct {
 
 // Rule of thump: (Will be probably clarified at the point of implementation)
 // 0: None
-// 1: See
+// 1: See (On Inventory also to update the count)
 // 2: Edit
 // 3: Delete
 
@@ -54,6 +53,7 @@ type Permission struct {
 	Form       int
 	Website    int
 	Orders     int
+	Inventory  int
 	Sponsors   int
 
 	MemberID uint64 `gorm:"index"`
@@ -73,13 +73,15 @@ type Team struct {
 	gorm.Model
 	ID uint64 `gorm:"primaryKey"`
 
-	Name    string
-	League  string
-	Members []Member
-	History []ParticipationHistory
+	Name     string
+	Email    string
+	League   string
+	Password string
+	Members  []Member
+	History  []ParticipationHistory
 
-	EventID uint64 `gorm:"index"`
-	Event   Event
+	EventID *uint64 `gorm:"index"`
+	Event   *Event
 }
 
 type ParticipationHistory struct {
@@ -100,6 +102,7 @@ type Event struct {
 	ID uint64 `gorm:"primaryKey"`
 
 	Name            string
+	Location        string
 	StartDate       time.Time
 	EndDate         time.Time
 	RegisteredTeams []Team
@@ -223,13 +226,25 @@ type RepeatingOrder struct {
 	Link  string
 }
 
-type TDPList struct {
+type InventoryCategory struct {
 	gorm.Model
-	ID uint64 `gorm:"primaryKey"`
+	ID uint64 `gorm:"primaryKey" json:"id"`
 
-	Team string
-	Year int
-	URL  string
+	Name             string           `json:"name"`
+	InventoryEntries []InventoryEntry `json:"entries"`
+}
+
+type InventoryEntry struct {
+	gorm.Model
+	ID uint64 `gorm:"primaryKey" json:"id"`
+
+	Name     string `json:"name"`
+	Quantity int    `json:"quantity"`
+	Link     string `json:"link"`
+	Location string `json:"location"`
+
+	InventoryCategoryID uint64 `gorm:"index"`
+	InventoryCategory   InventoryCategory
 }
 
 func InitDatabase(db *gorm.DB) error {
@@ -321,7 +336,12 @@ func InitDatabase(db *gorm.DB) error {
 		return errors.New(fmt.Sprintf("error migrating table: %v\n", err))
 	}
 
-	err = db.AutoMigrate(&TDPList{})
+	err = db.AutoMigrate(&InventoryCategory{})
+	if err != nil {
+		return errors.New(fmt.Sprintf("error migrating table: %v\n", err))
+	}
+
+	err = db.AutoMigrate(&InventoryEntry{})
 	if err != nil {
 		return errors.New(fmt.Sprintf("error migrating table: %v\n", err))
 	}
