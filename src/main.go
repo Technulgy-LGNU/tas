@@ -64,7 +64,6 @@ func main() {
 	mst.ElapsedTime()
 
 	// Routines
-	util.DeleteOldSessions(DB)
 	util.DeleteSoftDeletedUserKeys(DB)
 	util.DeleteOldForms(DB)
 	util.DeleteOldPasswordResetCodes(DB)

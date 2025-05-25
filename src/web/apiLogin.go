@@ -164,7 +164,7 @@ func (a *API) checkIfUserIsLoggedIn(c *fiber.Ctx) error {
 
 	// Check if user is logged in
 	var browserToken database.BrowserToken
-	err = a.DB.Where("device_id = ? AND key = ?", data.DeviceId, data.Token).First(&browserToken).Error
+	err = a.DB.Preload("Member").Where("device_id = ? AND key = ?", data.DeviceId, data.Token).First(&browserToken).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return c.Status(fiber.StatusUnauthorized).JSON("invalid credentials")
