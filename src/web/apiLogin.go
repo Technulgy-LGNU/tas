@@ -35,7 +35,7 @@ func (a *API) login(c *fiber.Ctx) error {
 	if err = a.DB.Where("email = ?", data.Email).First(&user).Error; err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON("invalid credentials")
 	}
-	if user.Password != data.Password {
+	if !util.CheckStringHash(data.Password, user.Password) {
 		return c.Status(fiber.StatusBadRequest).JSON("invalid password")
 	}
 

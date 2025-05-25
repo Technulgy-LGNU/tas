@@ -1,9 +1,10 @@
 package main
 
 import (
+	"golang.org/x/crypto/bcrypt"
 	"helpers/config"
 	"helpers/dbHelpers"
-	"time"
+	"log"
 )
 
 func main() {
@@ -28,18 +29,28 @@ func main() {
 		Form:       3,
 		Website:    3,
 		Orders:     3,
+		Inventory:  3,
 	}
 	var user = dbHelpers.Member{
 		Name:     "Elias Braun",
 		Email:    "braunelias@tghd.email",
-		Password: "test",
-		Birthday: time.Now(),
+		Password: HashString("test"),
 		Gender:   "male",
 		Perms:    &perms,
+		TeamID:   1,
 	}
 
 	result := db.Create(&user)
 	if result.Error != nil {
 		panic(result.Error)
 	}
+}
+
+func HashString(key string) string {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(key), bcrypt.DefaultCost)
+	if err != nil {
+		log.Printf("Error hashing String: %v\n", err)
+		return ""
+	}
+	return string(bytes)
 }

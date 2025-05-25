@@ -105,7 +105,7 @@ func (a *API) resetPasswordCode(c *fiber.Ctx) error {
 		}
 		return c.Status(fiber.StatusInternalServerError).JSON("Database error")
 	}
-	user.Password = data.Password
+	user.Password = util.HashString(data.Password)
 	if err = a.DB.Save(&user).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON("Failed to update password")
 	}
