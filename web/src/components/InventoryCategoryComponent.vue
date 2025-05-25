@@ -242,7 +242,7 @@ const updateQuantity = async (id: number, quantity: number) => {
                 </button>
                 <button
                   v-if="Cookies.get('admin') === 'true' || Number(Cookies.get('inventory')) >= 2"
-                  @click="editCreate = true; entryToEdit = entry"
+                  @click="editCreate = true; entryToEdit = entry; mode = 'edit'"
                   class="px-2 py-0.5 bg-green-500 text-white rounded hover:bg-green-600 transition text-xs"
                 >
                   Edit
