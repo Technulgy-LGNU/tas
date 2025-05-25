@@ -1,6 +1,6 @@
 # Cache Data
-.env
 config.yaml
+.env
 
 # Logs
 logs
