@@ -4,7 +4,7 @@ go 1.24.1
 
 require (
 	github.com/bensch777/discord-webhook-golang v0.0.6
-	github.com/gofiber/fiber/v2 v2.52.8
+	github.com/gofiber/fiber/v2 v2.52.9
 	github.com/gofiber/websocket/v2 v2.2.1
 	golang.org/x/crypto v0.38.0
 	gopkg.in/yaml.v3 v3.0.1
