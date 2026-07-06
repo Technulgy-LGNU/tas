@@ -12,9 +12,11 @@ import (
 	"math/big"
 	"net/http"
 	"strings"
+	"tas/internal/database"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
 )
 
 type jwkSet struct {
@@ -46,16 +48,30 @@ func (a *API) authConfig(c *fiber.Ctx) error {
 }
 
 func (a *API) requireAuthenticated(c *fiber.Ctx) error {
-	return a.requireToken(c, false)
+	if err := a.authenticate(c, false); err != nil {
+		return err
+	}
+	return c.Next()
 }
 
 func (a *API) requireAdmin(c *fiber.Ctx) error {
-	return a.requireToken(c, true)
+	if err := a.authenticate(c, true); err != nil {
+		return err
+	}
+	return c.Next()
 }
 
-func (a *API) requireToken(c *fiber.Ctx, requireRole bool) error {
+func (a *API) authenticate(c *fiber.Ctx, requireRole bool) error {
+	if _, ok := c.Locals("member").(*database.Member); ok {
+		return nil
+	}
 	if a.CFG.Auth.DevAllowAdmin {
-		return c.Next()
+		member, err := a.ensureDevAdmin()
+		if err != nil {
+			return err
+		}
+		c.Locals("member", member)
+		return nil
 	}
 	if a.CFG.Auth.Issuer == "" || a.CFG.Auth.ClientID == "" {
 		return fail(fiber.StatusServiceUnavailable, "FusionAuth is not configured")
@@ -66,53 +82,63 @@ func (a *API) requireToken(c *fiber.Ctx, requireRole bool) error {
 	if token == "" || token == header {
 		return fail(fiber.StatusUnauthorized, "missing bearer token")
 	}
-	if err := a.validateJWT(c.Context(), token, requireRole); err != nil {
+	claims, err := a.validateJWT(c.Context(), token, requireRole)
+	if err != nil {
 		return fail(fiber.StatusUnauthorized, err.Error())
 	}
-	return c.Next()
+	member, err := a.ensureMemberFromClaims(claims)
+	if err != nil {
+		return err
+	}
+	c.Locals("claims", claims)
+	c.Locals("member", member)
+	return nil
 }
 
-func (a *API) validateJWT(ctx context.Context, token string, requireRole bool) error {
+func (a *API) validateJWT(ctx context.Context, token string, requireRole bool) (map[string]any, error) {
 	parts := strings.Split(token, ".")
 	if len(parts) != 3 {
-		return errors.New("invalid token")
+		return nil, errors.New("invalid token")
 	}
 
 	headerBytes, err := base64.RawURLEncoding.DecodeString(parts[0])
 	if err != nil {
-		return errors.New("invalid token header")
+		return nil, errors.New("invalid token header")
 	}
 	var header jwtHeader
 	if err := json.Unmarshal(headerBytes, &header); err != nil {
-		return errors.New("invalid token header")
+		return nil, errors.New("invalid token header")
 	}
 	if header.Alg != "RS256" {
-		return fmt.Errorf("unsupported token algorithm %q", header.Alg)
+		return nil, fmt.Errorf("unsupported token algorithm %q", header.Alg)
 	}
 
 	key, err := a.publicKeyForKid(ctx, header.Kid)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	signed := []byte(parts[0] + "." + parts[1])
 	signature, err := base64.RawURLEncoding.DecodeString(parts[2])
 	if err != nil {
-		return errors.New("invalid token signature")
+		return nil, errors.New("invalid token signature")
 	}
 	hash := sha256.Sum256(signed)
 	if err := rsa.VerifyPKCS1v15(key, crypto.SHA256, hash[:], signature); err != nil {
-		return errors.New("token signature verification failed")
+		return nil, errors.New("token signature verification failed")
 	}
 
 	claimsBytes, err := base64.RawURLEncoding.DecodeString(parts[1])
 	if err != nil {
-		return errors.New("invalid token claims")
+		return nil, errors.New("invalid token claims")
 	}
 	var claims map[string]any
 	if err := json.Unmarshal(claimsBytes, &claims); err != nil {
-		return errors.New("invalid token claims")
+		return nil, errors.New("invalid token claims")
 	}
-	return a.validateClaims(claims, requireRole)
+	if err := a.validateClaims(claims, requireRole); err != nil {
+		return nil, err
+	}
+	return claims, nil
 }
 
 func (a *API) validateClaims(claims map[string]any, requireRole bool) error {
@@ -130,6 +156,81 @@ func (a *API) validateClaims(claims map[string]any, requireRole bool) error {
 		return errors.New("required admin role missing")
 	}
 	return nil
+}
+
+func (a *API) ensureDevAdmin() (*database.Member, error) {
+	now := time.Now()
+	member := database.Member{
+		FusionAuthUserID: "dev-admin",
+		Email:            "dev-admin@localhost",
+		Name:             "Development Admin",
+		Status:           database.MemberStatusApproved,
+		LastLoginAt:      &now,
+	}
+	if err := a.DB.Where(database.Member{FusionAuthUserID: member.FusionAuthUserID}).FirstOrCreate(&member).Error; err != nil {
+		return nil, fail(fiber.StatusInternalServerError, "could not create development admin")
+	}
+	var adminRole database.Role
+	if err := preloadRolePermissions(a.DB).Where("name = ?", "admin").First(&adminRole).Error; err == nil {
+		if err := a.DB.Model(&member).Association("Roles").Replace(&adminRole); err != nil {
+			return nil, fail(fiber.StatusInternalServerError, "could not assign development admin role")
+		}
+	}
+	if err := preloadMemberPermissions(a.DB).First(&member, member.ID).Error; err != nil {
+		return nil, fail(fiber.StatusInternalServerError, "could not load development admin")
+	}
+	return &member, nil
+}
+
+func (a *API) ensureMemberFromClaims(claims map[string]any) (*database.Member, error) {
+	subject, _ := claims["sub"].(string)
+	if strings.TrimSpace(subject) == "" {
+		return nil, fail(fiber.StatusUnauthorized, "token subject is missing")
+	}
+
+	now := time.Now()
+	email := stringClaim(claims, "email", "preferred_username")
+	name := stringClaim(claims, "name", "full_name", "preferred_username", "email")
+	member := database.Member{}
+	err := preloadMemberPermissions(a.DB).Where("fusion_auth_user_id = ?", subject).First(&member).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		member = database.Member{
+			FusionAuthUserID: subject,
+			Email:            email,
+			Name:             name,
+			Status:           database.MemberStatusPending,
+			LastLoginAt:      &now,
+		}
+		if err := a.DB.Create(&member).Error; err != nil {
+			return nil, fail(fiber.StatusInternalServerError, "could not create member")
+		}
+		if err := preloadMemberPermissions(a.DB).First(&member, member.ID).Error; err != nil {
+			return nil, fail(fiber.StatusInternalServerError, "could not load member")
+		}
+		return &member, nil
+	}
+	if err != nil {
+		return nil, fail(fiber.StatusInternalServerError, "could not load member")
+	}
+
+	updates := map[string]any{"last_login_at": &now}
+	if email != "" {
+		updates["email"] = email
+	}
+	if name != "" {
+		updates["name"] = name
+	}
+	if err := a.DB.Model(&member).Updates(updates).Error; err != nil {
+		return nil, fail(fiber.StatusInternalServerError, "could not update member")
+	}
+	if err := preloadMemberPermissions(a.DB).First(&member, member.ID).Error; err != nil {
+		return nil, fail(fiber.StatusInternalServerError, "could not reload member")
+	}
+	return &member, nil
+}
+
+func preloadRolePermissions(db *gorm.DB) *gorm.DB {
+	return db.Preload("Permissions")
 }
 
 func (a *API) publicKeyForKid(ctx context.Context, kid string) (*rsa.PublicKey, error) {
@@ -262,4 +363,13 @@ func numberClaim(value any) (float64, bool) {
 	default:
 		return 0, false
 	}
+}
+
+func stringClaim(claims map[string]any, keys ...string) string {
+	for _, key := range keys {
+		if value, ok := claims[key].(string); ok && strings.TrimSpace(value) != "" {
+			return strings.TrimSpace(value)
+		}
+	}
+	return ""
 }

@@ -24,12 +24,23 @@ type Config struct {
 		Port uint16 `toml:"port"`
 	} `toml:"server"`
 
+	CORS struct {
+		Origins []string `toml:"origins"`
+	} `toml:"cors"`
+
 	Auth struct {
 		Issuer        string `toml:"issuer"`
 		ClientID      string `toml:"client_id"`
 		RequiredRole  string `toml:"required_role"`
 		DevAllowAdmin bool   `toml:"dev_allow_admin"`
 	} `toml:"auth"`
+
+	Cloudflare struct {
+		ImagesAccountID   string `toml:"images_account_id"`
+		ImagesAPIToken    string `toml:"images_api_token"`
+		ImagesDeliveryURL string `toml:"images_delivery_url"`
+		ImagesVariant     string `toml:"images_variant"`
+	} `toml:"cloudflare"`
 }
 
 func defaultConfig() Config {
@@ -45,7 +56,16 @@ func defaultConfig() Config {
 	cfg.Server.Host = "0.0.0.0"
 	cfg.Server.Port = 8000
 
+	cfg.CORS.Origins = []string{
+		"http://localhost:5173",
+		"http://localhost:8000",
+		"https://tas.technulgy.com",
+		"https://links.technulgy.com",
+		"https://technulgy.com",
+	}
+
 	cfg.Auth.RequiredRole = "admin"
+	cfg.Cloudflare.ImagesVariant = "public"
 
 	return cfg
 }

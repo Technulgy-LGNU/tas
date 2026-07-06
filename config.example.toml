@@ -13,14 +13,25 @@ host = "0.0.0.0"
 # The port the server will listen on
 port = 8000
 
-[catigoal]
-# Base URL for the Catigoal JSON API, including trailing slash or not.
-base_url = "https://example.invalid/api/"
+[cors]
+origins = [
+  "http://localhost:5173",
+  "http://localhost:8000",
+  "https://tas.technulgy.com",
+  "https://technulgy.com"
+]
 
 [auth]
 # FusionAuth issuer, for example "https://auth.example.org".
 issuer = ""
 client_id = ""
-required_role = "admin"
-# Keep false in production. True lets local referee and admin APIs work without FusionAuth.
+required_role = ""
+# Keep false in production. True creates a local development admin without FusionAuth.
 dev_allow_admin = true
+
+[cloudflare]
+images_account_id = ""
+images_api_token = ""
+# Example: "https://imagedelivery.net/<account_hash>"
+images_delivery_url = ""
+images_variant = "public"
