@@ -2,24 +2,9 @@
 
 This Software is for managing everything about the Technulgy organisation,
 including but not limited to:
- - [x] Members
- - [x] Teams
- - [ ] Sponsors
- - [ ] Website
- - [ ] Newsletter
+ - [ ] Teams
+ - [ ] Inventory
  - [ ] Orders
- - [ ] Events (Internal & External)
- - [x] Forms
- - [x] TDPs
+ - [ ] Website
 
-This software will include integrations for:
- - [x] Email
- - [ ] Nextcloud
- - [x] Discord
- - [ ] RCJ Forum Updates
- - [ ] RCJV Events and Game plans
-
-Any ideas, email me (braunelias@tghd.email)
-
-# Deployment
-Is now done via docker-swarm and github actions.
+After an initial version, it currently gets a complete redesign

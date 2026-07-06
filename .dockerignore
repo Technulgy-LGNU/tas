@@ -1,8 +1,0 @@
-config
-data
-.github
-.gitignore
-.idea
-LICENSE
-README.md
-docker-stack.yaml
