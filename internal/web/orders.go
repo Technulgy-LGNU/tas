@@ -16,6 +16,7 @@ type orderRequestPayload struct {
 	URL            string `json:"url"`
 	Notes          string `json:"notes"`
 	ShopName       string `json:"shop_name"`
+	Force          bool   `json:"force"`
 }
 
 func (a *API) listOrderRequests(c *fiber.Ctx) error {
@@ -82,9 +83,28 @@ func (a *API) updateOrderRequest(c *fiber.Ctx) error {
 	return c.JSON(request)
 }
 
+func (a *API) deleteOrderRequest(c *fiber.Ctx) error {
+	id, err := uintParam(c, "id")
+	if err != nil {
+		return err
+	}
+	var request database.OrderRequest
+	if err := a.DB.First(&request, id).Error; err != nil {
+		return notFoundOrError(err, "order request not found")
+	}
+	if request.Status == database.OrderRequestStatusApproved {
+		return fail(fiber.StatusConflict, "approved requests cannot be deleted after they were added to a list")
+	}
+	if err := a.DB.Delete(&request).Error; err != nil {
+		return err
+	}
+	return c.SendStatus(fiber.StatusNoContent)
+}
+
 type approveOrderRequestPayload struct {
 	OrderListID *uint  `json:"order_list_id"`
 	ListName    string `json:"list_name"`
+	Force       bool   `json:"force"`
 }
 
 func (a *API) approveOrderRequest(c *fiber.Ctx) error {
@@ -114,8 +134,8 @@ func (a *API) approveOrderRequest(c *fiber.Ctx) error {
 		if err := a.DB.First(&list, *payload.OrderListID).Error; err != nil {
 			return notFoundOrError(err, "order list not found")
 		}
-		if list.Status != database.OrderListStatusDraft {
-			return fail(fiber.StatusConflict, "requests can only be added to draft lists")
+		if err := a.requireListItemMutationAllowed(c, &list, payload.Force); err != nil {
+			return err
 		}
 	} else {
 		name := strings.TrimSpace(payload.ListName)
@@ -175,7 +195,8 @@ func (a *API) rejectOrderRequest(c *fiber.Ctx) error {
 }
 
 type orderListPayload struct {
-	Name string `json:"name"`
+	Name   *string `json:"name"`
+	Status *string `json:"status"`
 }
 
 func (a *API) listOrderLists(c *fiber.Ctx) error {
@@ -195,7 +216,10 @@ func (a *API) createOrderList(c *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	name := strings.TrimSpace(payload.Name)
+	name := ""
+	if payload.Name != nil {
+		name = strings.TrimSpace(*payload.Name)
+	}
 	if name == "" {
 		return fail(fiber.StatusBadRequest, "order list name is required")
 	}
@@ -236,15 +260,63 @@ func (a *API) updateOrderList(c *fiber.Ctx) error {
 	if err := a.requireManageOrDraft(c, &list); err != nil {
 		return err
 	}
-	name := strings.TrimSpace(payload.Name)
-	if name == "" {
-		return fail(fiber.StatusBadRequest, "order list name is required")
+
+	updates := map[string]any{}
+	if payload.Name != nil {
+		name := strings.TrimSpace(*payload.Name)
+		if name == "" {
+			return fail(fiber.StatusBadRequest, "order list name is required")
+		}
+		updates["name"] = name
 	}
-	if err := a.DB.Model(&list).Update("name", name).Error; err != nil {
+	if payload.Status != nil {
+		member, err := currentMember(c)
+		if err != nil {
+			return err
+		}
+		if !a.memberHasAnyPermission(member, "orders:manage") {
+			return fail(fiber.StatusForbidden, "changing order list status requires manage permission")
+		}
+		status := strings.TrimSpace(*payload.Status)
+		if !validOrderListStatus(status) {
+			return fail(fiber.StatusBadRequest, "invalid order list status")
+		}
+		updates["status"] = status
+		if status == database.OrderListStatusPublished && list.PublishedAt == nil {
+			now := time.Now()
+			updates["published_at"] = &now
+		}
+		if status != database.OrderListStatusPublished {
+			updates["published_at"] = nil
+		}
+	}
+	if len(updates) == 0 {
+		return c.JSON(list)
+	}
+	if err := a.DB.Model(&list).Updates(updates).Error; err != nil {
 		return err
 	}
-	list.Name = name
+	if err := a.DB.Preload("Items", func(db *gorm.DB) *gorm.DB {
+		return db.Order("shop_name asc, name asc")
+	}).First(&list, id).Error; err != nil {
+		return err
+	}
 	return c.JSON(list)
+}
+
+func (a *API) deleteOrderList(c *fiber.Ctx) error {
+	id, err := uintParam(c, "id")
+	if err != nil {
+		return err
+	}
+	var list database.OrderList
+	if err := a.DB.First(&list, id).Error; err != nil {
+		return notFoundOrError(err, "order list not found")
+	}
+	if err := a.DB.Delete(&list).Error; err != nil {
+		return err
+	}
+	return c.SendStatus(fiber.StatusNoContent)
 }
 
 func (a *API) publishOrderList(c *fiber.Ctx) error {
@@ -273,11 +345,11 @@ func (a *API) createOrderListItem(c *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	if err := a.requireManageOrDraft(c, &list); err != nil {
-		return err
-	}
 	payload, err := bindJSON[orderRequestPayload](c)
 	if err != nil {
+		return err
+	}
+	if err := a.requireListItemMutationAllowed(c, &list, payload.Force); err != nil {
 		return err
 	}
 	item, err := orderListItemFromPayload(payload, list.ID)
@@ -295,11 +367,11 @@ func (a *API) updateOrderListItem(c *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	if err := a.requireManageOrDraft(c, &list); err != nil {
-		return err
-	}
 	payload, err := bindJSON[orderRequestPayload](c)
 	if err != nil {
+		return err
+	}
+	if err := a.requireListItemMutationAllowed(c, &list, payload.Force); err != nil {
 		return err
 	}
 	updated, err := orderListItemFromPayload(payload, list.ID)
@@ -415,6 +487,32 @@ func (a *API) receiveOrderListItem(c *fiber.Ctx) error {
 	item.ReceivedByID = &member.ID
 	item.ReceivedInventoryItemID = &received.ID
 	return c.JSON(fiber.Map{"item": item, "inventory_item": received})
+}
+
+func (a *API) requireListItemMutationAllowed(c *fiber.Ctx, list *database.OrderList, force bool) error {
+	if list.Status != database.OrderListStatusPublished {
+		return nil
+	}
+	member, err := currentMember(c)
+	if err != nil {
+		return err
+	}
+	if !a.memberHasAnyPermission(member, "orders:manage") {
+		return fail(fiber.StatusForbidden, "published order lists require manage permission")
+	}
+	if !force {
+		return fail(fiber.StatusConflict, "published order list changes require force override")
+	}
+	return nil
+}
+
+func validOrderListStatus(status string) bool {
+	switch status {
+	case database.OrderListStatusDraft, database.OrderListStatusPublished, database.OrderListStatusArchived:
+		return true
+	default:
+		return false
+	}
 }
 
 func (a *API) loadOrderListFromParam(c *fiber.Ctx) (database.OrderList, error) {

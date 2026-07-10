@@ -15,6 +15,7 @@ import {
   RefreshCw,
   Save,
   Send,
+  Trash2,
   Upload,
   Users,
   X
@@ -25,6 +26,7 @@ import {
   fetchAuthConfig,
   getJSON,
   getToken,
+  deleteJSON,
   patchJSON,
   postJSON,
   putJSON,
@@ -75,6 +77,7 @@ const editingRequestId = ref<number | null>(null)
 const editingOrderItemId = ref<number | null>(null)
 const expandedCategoryIds = ref<Set<number>>(new Set())
 const selectedCategoryFilter = ref<number | null>(null)
+const forceOrderListOverride = ref(false)
 const images = ref<UploadedImage[]>([])
 const teams = ref<Team[]>([])
 const competitions = ref<Competition[]>([])
@@ -96,6 +99,7 @@ const itemForm = reactive({
 })
 const requestForm = reactive({ name: '', quantity: 1, unit_price_cents: 0, url: '', notes: '', shop_name: '' })
 const listForm = reactive({ name: '' })
+const listEditForm = reactive({ name: '', status: 'draft' as OrderList['status'] })
 const listItemForm = reactive({ name: '', quantity: 1, unit_price_cents: 0, url: '', notes: '', shop_name: '' })
 const inventoryEditForm = reactive({
   name: '',
@@ -158,6 +162,8 @@ const filteredInventory = computed(() => {
   const categoryIDs = new Set<number>([selectedCategoryFilter.value, ...descendantCategoryIds(selectedCategoryFilter.value, categoryTree.value)])
   return inventory.value.filter((item) => item.category_id !== null && item.category_id !== undefined && categoryIDs.has(item.category_id))
 })
+const selectedListRequiresForce = computed(() => selectedList.value?.status === 'published')
+const selectedListMutationBlocked = computed(() => selectedListRequiresForce.value && (!canAny('orders:manage') || !forceOrderListOverride.value))
 
 onMounted(async () => {
   await run(async () => {
@@ -330,11 +336,23 @@ async function reorder(item: InventoryItem) {
 
 async function loadOrders() {
   ;[requests.value, lists.value] = await Promise.all([getJSON<OrderRequest[]>('/orders/requests'), getJSON<OrderList[]>('/orders/lists')])
+  if (selectedListId.value && !lists.value.some((list) => list.id === selectedListId.value)) {
+    selectedListId.value = lists.value[0]?.id ?? null
+    selectedList.value = null
+  }
   if (!selectedListId.value && lists.value.length) {
     selectedListId.value = lists.value[0].id
   }
   if (selectedListId.value) {
     await loadSelectedList()
+  }
+}
+
+function syncListEditForm(list: OrderList | null) {
+  listEditForm.name = list?.name ?? ''
+  listEditForm.status = list?.status ?? 'draft'
+  if (list?.status !== 'published') {
+    forceOrderListOverride.value = false
   }
 }
 
@@ -360,9 +378,11 @@ async function createList() {
 async function loadSelectedList() {
   if (!selectedListId.value) {
     selectedList.value = null
+    syncListEditForm(null)
     return
   }
   selectedList.value = await getJSON<OrderList>(`/orders/lists/${selectedListId.value}`)
+  syncListEditForm(selectedList.value)
 }
 
 function openList(list: OrderList) {
@@ -372,7 +392,11 @@ function openList(list: OrderList) {
 
 async function approveRequest(request: OrderRequest) {
   await run(async () => {
-    await postJSON<OrderListItem>(`/orders/requests/${request.id}/approve`, { order_list_id: selectedListId.value, list_name: listForm.name })
+    await postJSON<OrderListItem>(`/orders/requests/${request.id}/approve`, {
+      order_list_id: selectedListId.value,
+      list_name: listForm.name,
+      force: forceOrderListOverride.value
+    })
     await loadOrders()
     notice.value = 'Request added to order list'
   })
@@ -403,10 +427,24 @@ async function saveRequest(request: OrderRequest) {
   })
 }
 
+async function deleteRequest(request: OrderRequest) {
+  if (!window.confirm(`Delete request "${request.name}"? This will soft-delete it.`)) {
+    return
+  }
+  await run(async () => {
+    await deleteJSON(`/orders/requests/${request.id}`)
+    if (editingRequestId.value === request.id) {
+      editingRequestId.value = null
+    }
+    await loadOrders()
+    notice.value = 'Request deleted'
+  })
+}
+
 async function addListItem() {
   if (!selectedListId.value) return
   await run(async () => {
-    await postJSON<OrderListItem>(`/orders/lists/${selectedListId.value}/items`, clean(listItemForm))
+    await postJSON<OrderListItem>(`/orders/lists/${selectedListId.value}/items`, clean({ ...listItemForm, force: forceOrderListOverride.value }))
     Object.assign(listItemForm, { name: '', quantity: 1, unit_price_cents: 0, url: '', notes: '', shop_name: '' })
     await loadOrders()
     notice.value = 'List item added'
@@ -431,11 +469,35 @@ function cancelOrderItemEdit() {
 
 async function saveOrderItem(item: OrderListItem) {
   await run(async () => {
-    await patchJSON<OrderListItem>(`/orders/lists/${item.order_list_id}/items/${item.id}`, clean(orderItemEditForm))
+    await patchJSON<OrderListItem>(`/orders/lists/${item.order_list_id}/items/${item.id}`, clean({ ...orderItemEditForm, force: forceOrderListOverride.value }))
     editingOrderItemId.value = null
     await loadSelectedList()
     await loadOrders()
     notice.value = 'Order list item saved'
+  })
+}
+
+async function saveListSettings() {
+  if (!selectedListId.value) return
+  await run(async () => {
+    await patchJSON<OrderList>(`/orders/lists/${selectedListId.value}`, clean(listEditForm))
+    await loadOrders()
+    notice.value = 'Order list saved'
+  })
+}
+
+async function deleteSelectedList() {
+  if (!selectedListId.value || !selectedList.value) return
+  if (!window.confirm(`Delete "${selectedList.value.name}"? This will soft-delete the list.`)) {
+    return
+  }
+  await run(async () => {
+    await deleteJSON(`/orders/lists/${selectedListId.value}`)
+    selectedListId.value = null
+    selectedList.value = null
+    syncListEditForm(null)
+    await loadOrders()
+    notice.value = 'Order list deleted'
   })
 }
 
@@ -900,7 +962,8 @@ function categoryIndentClass(depth: number) {
                           <td class="cell-actions">
                             <div class="actions">
                               <button type="button" :disabled="!canAny('orders:edit', 'orders:manage')" @click="editRequest(request)"><Edit3 :size="16" /> Edit</button>
-                              <button type="button" :disabled="!canAny('orders:manage')" @click="approveRequest(request)"><Check :size="16" /> Approve</button>
+                              <button type="button" :disabled="!canAny('orders:manage') || selectedListMutationBlocked" @click="approveRequest(request)"><Check :size="16" /> Approve</button>
+                              <button class="warning" type="button" :disabled="!canAny('orders:manage')" @click="deleteRequest(request)"><Trash2 :size="16" /> Delete</button>
                             </div>
                           </td>
                         </template>
@@ -957,6 +1020,25 @@ function categoryIndentClass(depth: number) {
                   <p>{{ selectedList?.status ?? '' }}</p>
                 </div>
               </div>
+              <div v-if="selectedList" class="grid three">
+                <label>List name<input v-model="listEditForm.name" /></label>
+                <label>
+                  Status
+                  <select v-model="listEditForm.status" :disabled="!canAny('orders:manage')">
+                    <option value="draft">draft</option>
+                    <option value="published">published</option>
+                    <option value="archived">archived</option>
+                  </select>
+                </label>
+                <label class="inline-flex h-8 items-center gap-2 self-end rounded-md border border-amber-200 bg-amber-50 px-2 text-xs font-semibold text-amber-900">
+                  <input v-model="forceOrderListOverride" type="checkbox" :disabled="!canAny('orders:manage')" />
+                  Force published-list item changes
+                </label>
+              </div>
+              <div v-if="selectedList" class="actions">
+                <button type="button" :disabled="!canAny('orders:edit', 'orders:manage') || (selectedList.status === 'published' && !canAny('orders:manage'))" @click="saveListSettings"><Save :size="16" /> Save list</button>
+                <button class="warning" type="button" :disabled="!canAny('orders:manage')" @click="deleteSelectedList"><Trash2 :size="16" /> Delete list</button>
+              </div>
               <div class="grid">
                 <label>Name<input v-model="listItemForm.name" /></label>
                 <label>Quantity<input v-model.number="listItemForm.quantity" type="number" min="1" /></label>
@@ -964,7 +1046,7 @@ function categoryIndentClass(depth: number) {
                 <label>Shop override<input v-model="listItemForm.shop_name" /></label>
               </div>
               <label>URL<input v-model="listItemForm.url" /></label>
-              <button type="button" :disabled="!selectedListId || !canAny('orders:edit', 'orders:manage')" @click="addListItem"><Plus :size="16" /> Add direct item</button>
+              <button type="button" :disabled="!selectedListId || !canAny('orders:edit', 'orders:manage') || selectedListMutationBlocked" @click="addListItem"><Plus :size="16" /> Add direct item</button>
               <div class="table-wrap">
                 <table class="min-w-[980px]">
                   <colgroup>
@@ -1007,7 +1089,7 @@ function categoryIndentClass(depth: number) {
                           <div class="actions">
                             <button
                               type="button"
-                              :disabled="!canAny('orders:edit', 'orders:manage') || (selectedList?.status === 'published' && !canAny('orders:manage'))"
+                              :disabled="!canAny('orders:edit', 'orders:manage') || selectedListMutationBlocked"
                               @click="editOrderItem(item)"
                             >
                               <Edit3 :size="16" /> Edit
