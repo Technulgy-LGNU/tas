@@ -657,6 +657,11 @@ function categoryInventoryCount(category: CategoryNode) {
   const ids = new Set<number>([category.id, ...descendantCategoryIds(category.id, categoryTree.value)])
   return inventory.value.filter((item) => item.category_id !== null && item.category_id !== undefined && ids.has(item.category_id)).length
 }
+
+function categoryIndentClass(depth: number) {
+  const classes = ['pl-2', 'pl-6', 'pl-10', 'pl-14', 'pl-16', 'pl-20']
+  return classes[Math.min(depth, classes.length - 1)]
+}
 </script>
 
 <template>
@@ -731,7 +736,15 @@ function categoryInventoryCount(category: CategoryNode) {
                 </div>
               </div>
               <div class="table-wrap">
-                <table>
+                <table class="min-w-[920px]">
+                  <colgroup>
+                    <col class="w-[34%]" />
+                    <col class="w-20" />
+                    <col class="w-[18%]" />
+                    <col class="w-[14%]" />
+                    <col class="w-28" />
+                    <col class="w-52" />
+                  </colgroup>
                   <thead>
                     <tr>
                       <th>Name</th>
@@ -745,7 +758,7 @@ function categoryInventoryCount(category: CategoryNode) {
                   <tbody>
                     <tr v-for="item in filteredInventory" :key="item.id">
                       <template v-if="editingInventoryId === item.id">
-                        <td>
+                        <td class="edit-cell">
                           <label>Name<input v-model="inventoryEditForm.name" /></label>
                           <label>Product URL<input v-model="inventoryEditForm.product_url" /></label>
                         </td>
@@ -766,23 +779,27 @@ function categoryInventoryCount(category: CategoryNode) {
                           <label><span><input v-model="inventoryEditForm.confirmed" type="checkbox" /> Confirmed</span></label>
                           <label>Website<input v-model="inventoryEditForm.website" /></label>
                         </td>
-                        <td class="actions">
-                          <button class="primary" type="button" @click="saveInventoryItem(item)"><Save :size="16" /> Save</button>
-                          <button type="button" @click="cancelInventoryEdit"><X :size="16" /> Cancel</button>
+                        <td class="cell-actions">
+                          <div class="actions">
+                            <button class="primary" type="button" @click="saveInventoryItem(item)"><Save :size="16" /> Save</button>
+                            <button type="button" @click="cancelInventoryEdit"><X :size="16" /> Cancel</button>
+                          </div>
                         </td>
                       </template>
                       <template v-else>
                         <td>
-                          <strong>{{ item.name }}</strong>
-                          <div class="muted">{{ item.product_url || item.website }}</div>
+                          <strong class="cell-title">{{ item.name }}</strong>
+                          <span class="cell-subtle">{{ item.product_url || item.website }}</span>
                         </td>
                         <td>{{ item.quantity }}</td>
                         <td>{{ item.category?.name ?? '-' }}</td>
                         <td>{{ item.vendor_id || '-' }}</td>
                         <td><span class="badge" :class="{ good: item.confirmed, warn: !item.confirmed }">{{ item.confirmed ? 'confirmed' : 'unconfirmed' }}</span></td>
-                        <td class="actions">
-                          <button type="button" :disabled="!canAny('inventory:edit', 'inventory:manage')" @click="editInventoryItem(item)"><Edit3 :size="16" /> Edit</button>
-                          <button type="button" :disabled="!canAny('orders:request')" @click="reorder(item)"><PackagePlus :size="16" /> Reorder</button>
+                        <td class="cell-actions">
+                          <div class="actions">
+                            <button type="button" :disabled="!canAny('inventory:edit', 'inventory:manage')" @click="editInventoryItem(item)"><Edit3 :size="16" /> Edit</button>
+                            <button type="button" :disabled="!canAny('orders:request')" @click="reorder(item)"><PackagePlus :size="16" /> Reorder</button>
+                          </div>
                         </td>
                       </template>
                     </tr>
@@ -820,9 +837,8 @@ function categoryInventoryCount(category: CategoryNode) {
                   v-for="category in visibleCategoryNodes"
                   :key="category.id"
                   class="tree-row"
-                  :class="{ active: selectedCategoryFilter === category.id }"
+                  :class="[categoryIndentClass(category.depth), { active: selectedCategoryFilter === category.id }]"
                   type="button"
-                  :style="{ paddingLeft: `${8 + category.depth * 18}px` }"
                   @click="selectCategoryFilter(category.id)"
                 >
                   <span class="tree-name">
@@ -850,11 +866,17 @@ function categoryInventoryCount(category: CategoryNode) {
               <div v-for="group in pendingRequestsByShop" :key="group.shop" class="group">
                 <div class="panel-header"><h3>{{ group.shop }}</h3></div>
                 <div class="table-wrap">
-                  <table>
+                  <table class="min-w-[760px]">
+                    <colgroup>
+                      <col class="w-[46%]" />
+                      <col class="w-[20%]" />
+                      <col class="w-[14%]" />
+                      <col class="w-52" />
+                    </colgroup>
                     <tbody>
                       <tr v-for="request in group.items" :key="request.id">
                         <template v-if="editingRequestId === request.id">
-                          <td>
+                          <td class="edit-cell">
                             <label>Name<input v-model="requestEditForm.name" /></label>
                             <label>URL<input v-model="requestEditForm.url" /></label>
                             <label>Notes<textarea v-model="requestEditForm.notes" /></label>
@@ -864,18 +886,22 @@ function categoryInventoryCount(category: CategoryNode) {
                             <label>Unit price cents<input v-model.number="requestEditForm.unit_price_cents" type="number" min="0" /></label>
                           </td>
                           <td><label>Shop override<input v-model="requestEditForm.shop_name" /></label></td>
-                          <td class="actions">
-                            <button class="primary" type="button" @click="saveRequest(request)"><Save :size="16" /> Save</button>
-                            <button type="button" @click="cancelRequestEdit"><X :size="16" /> Cancel</button>
+                          <td class="cell-actions">
+                            <div class="actions">
+                              <button class="primary" type="button" @click="saveRequest(request)"><Save :size="16" /> Save</button>
+                              <button type="button" @click="cancelRequestEdit"><X :size="16" /> Cancel</button>
+                            </div>
                           </td>
                         </template>
                         <template v-else>
-                          <td><strong>{{ request.name }}</strong><div class="muted">{{ request.url }}</div></td>
+                          <td><strong class="cell-title">{{ request.name }}</strong><span class="cell-subtle">{{ request.url }}</span></td>
                           <td>{{ request.quantity }} × {{ formatCents(request.unit_price_cents) }}</td>
                           <td>{{ formatCents(request.total_price_cents) }}</td>
-                          <td class="actions">
-                            <button type="button" :disabled="!canAny('orders:edit', 'orders:manage')" @click="editRequest(request)"><Edit3 :size="16" /> Edit</button>
-                            <button type="button" :disabled="!canAny('orders:manage')" @click="approveRequest(request)"><Check :size="16" /> Approve</button>
+                          <td class="cell-actions">
+                            <div class="actions">
+                              <button type="button" :disabled="!canAny('orders:edit', 'orders:manage')" @click="editRequest(request)"><Edit3 :size="16" /> Edit</button>
+                              <button type="button" :disabled="!canAny('orders:manage')" @click="approveRequest(request)"><Check :size="16" /> Approve</button>
+                            </div>
                           </td>
                         </template>
                       </tr>
@@ -924,7 +950,7 @@ function categoryInventoryCount(category: CategoryNode) {
               </div>
             </div>
 
-            <div class="panel" style="grid-column: 1 / -1">
+            <div class="panel col-span-full">
               <div class="panel-header">
                 <div>
                   <h2>{{ selectedList?.name ?? 'No list selected' }}</h2>
@@ -940,12 +966,20 @@ function categoryInventoryCount(category: CategoryNode) {
               <label>URL<input v-model="listItemForm.url" /></label>
               <button type="button" :disabled="!selectedListId || !canAny('orders:edit', 'orders:manage')" @click="addListItem"><Plus :size="16" /> Add direct item</button>
               <div class="table-wrap">
-                <table>
+                <table class="min-w-[980px]">
+                  <colgroup>
+                    <col class="w-[32%]" />
+                    <col class="w-[18%]" />
+                    <col class="w-28" />
+                    <col class="w-24" />
+                    <col class="w-24" />
+                    <col class="w-64" />
+                  </colgroup>
                   <thead><tr><th>Item</th><th>Shop</th><th>Total</th><th>Ordered</th><th>Received</th><th></th></tr></thead>
                   <tbody>
                     <tr v-for="item in selectedList?.items ?? []" :key="item.id">
                       <template v-if="editingOrderItemId === item.id">
-                        <td>
+                        <td class="edit-cell">
                           <label>Name<input v-model="orderItemEditForm.name" /></label>
                           <label>URL<input v-model="orderItemEditForm.url" /></label>
                           <label>Notes<textarea v-model="orderItemEditForm.notes" /></label>
@@ -956,29 +990,33 @@ function categoryInventoryCount(category: CategoryNode) {
                           <label>Unit price cents<input v-model.number="orderItemEditForm.unit_price_cents" type="number" min="0" /></label>
                         </td>
                         <td colspan="2"><span class="badge" :class="{ good: item.ordered }">{{ item.ordered ? 'ordered' : 'not ordered' }}</span></td>
-                        <td class="actions">
-                          <button class="primary" type="button" @click="saveOrderItem(item)"><Save :size="16" /> Save</button>
-                          <button type="button" @click="cancelOrderItemEdit"><X :size="16" /> Cancel</button>
+                        <td class="cell-actions">
+                          <div class="actions">
+                            <button class="primary" type="button" @click="saveOrderItem(item)"><Save :size="16" /> Save</button>
+                            <button type="button" @click="cancelOrderItemEdit"><X :size="16" /> Cancel</button>
+                          </div>
                         </td>
                       </template>
                       <template v-else>
-                        <td><strong>{{ item.name }}</strong><div class="muted">{{ item.quantity }} × {{ formatCents(item.unit_price_cents) }}</div></td>
-                        <td>{{ item.shop_name || item.shop_domain }}</td>
+                        <td><strong class="cell-title">{{ item.name }}</strong><span class="cell-subtle">{{ item.quantity }} × {{ formatCents(item.unit_price_cents) }}</span></td>
+                        <td><span class="cell-subtle">{{ item.shop_name || item.shop_domain }}</span></td>
                         <td>{{ formatCents(item.total_price_cents) }}</td>
                         <td><span class="badge" :class="{ good: item.ordered }">{{ item.ordered ? 'yes' : 'no' }}</span></td>
                         <td><span class="badge" :class="{ good: item.received }">{{ item.received ? 'yes' : 'no' }}</span></td>
-                        <td class="actions">
-                          <button
-                            type="button"
-                            :disabled="!canAny('orders:edit', 'orders:manage') || (selectedList?.status === 'published' && !canAny('orders:manage'))"
-                            @click="editOrderItem(item)"
-                          >
-                            <Edit3 :size="16" /> Edit
-                          </button>
-                          <button type="button" :disabled="item.ordered || !canAny('orders:manage')" @click="markOrdered(item)">Ordered</button>
-                          <button type="button" :disabled="!canAny('orders:manage')" @click="loadMatches(item)">Matches</button>
-                          <button type="button" :disabled="item.received || !canAny('orders:manage')" @click="receiveItem(item)">Receive</button>
-                          <span v-if="matches[item.id]?.length" class="muted">{{ matches[item.id][0].item.name }} · {{ matches[item.id][0].score }}</span>
+                        <td class="cell-actions">
+                          <div class="actions">
+                            <button
+                              type="button"
+                              :disabled="!canAny('orders:edit', 'orders:manage') || (selectedList?.status === 'published' && !canAny('orders:manage'))"
+                              @click="editOrderItem(item)"
+                            >
+                              <Edit3 :size="16" /> Edit
+                            </button>
+                            <button type="button" :disabled="item.ordered || !canAny('orders:manage')" @click="markOrdered(item)">Ordered</button>
+                            <button type="button" :disabled="!canAny('orders:manage')" @click="loadMatches(item)">Matches</button>
+                            <button type="button" :disabled="item.received || !canAny('orders:manage')" @click="receiveItem(item)">Receive</button>
+                            <span v-if="matches[item.id]?.length" class="cell-subtle">{{ matches[item.id][0].item.name }} · {{ matches[item.id][0].score }}</span>
+                          </div>
                         </td>
                       </template>
                     </tr>
@@ -988,7 +1026,7 @@ function categoryInventoryCount(category: CategoryNode) {
             </div>
           </section>
 
-          <section v-if="activeTab === 'website'" class="content" style="padding: 0">
+          <section v-if="activeTab === 'website'" class="content !p-0">
             <div class="panel">
               <div class="panel-header"><h2>Images</h2></div>
               <div class="actions">
@@ -1011,7 +1049,20 @@ function categoryInventoryCount(category: CategoryNode) {
                 </div>
                 <label>Summary<textarea v-model="teamForm.summary" /></label>
                 <button type="button" :disabled="!canAny('website:edit', 'website:manage')" @click="createTeam"><Plus :size="16" /> Add team</button>
-                <div class="table-wrap"><table><tbody><tr v-for="team in teams" :key="team.id"><td>{{ team.name }}</td><td>{{ team.published ? 'published' : 'draft' }}</td></tr></tbody></table></div>
+                <div class="table-wrap">
+                  <table class="min-w-[420px]">
+                    <colgroup>
+                      <col class="w-[70%]" />
+                      <col class="w-[30%]" />
+                    </colgroup>
+                    <tbody>
+                      <tr v-for="team in teams" :key="team.id">
+                        <td><span class="cell-title">{{ team.name }}</span></td>
+                        <td><span class="badge" :class="{ good: team.published }">{{ team.published ? 'published' : 'draft' }}</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
 
               <div class="panel">
@@ -1075,11 +1126,17 @@ function categoryInventoryCount(category: CategoryNode) {
               </div>
             </div>
             <div class="table-wrap">
-              <table>
+              <table class="min-w-[820px]">
+                <colgroup>
+                  <col class="w-[34%]" />
+                  <col class="w-36" />
+                  <col class="w-[38%]" />
+                  <col class="w-32" />
+                </colgroup>
                 <thead><tr><th>Member</th><th>Status</th><th>Roles</th><th></th></tr></thead>
                 <tbody>
                   <tr v-for="member in members" :key="member.id">
-                    <td><strong>{{ member.name || member.email }}</strong><div class="muted">{{ member.email }}</div></td>
+                    <td><strong class="cell-title">{{ member.name || member.email }}</strong><span class="cell-subtle">{{ member.email }}</span></td>
                     <td>
                       <select v-model="member.status">
                         <option value="pending">pending</option>
@@ -1088,16 +1145,16 @@ function categoryInventoryCount(category: CategoryNode) {
                       </select>
                     </td>
                     <td>
-                      <label v-for="role in roles" :key="role.id">
-                        <span>
+                      <div class="flex flex-wrap gap-1.5">
+                        <label v-for="role in roles" :key="role.id" class="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2 text-xs font-medium text-slate-700">
                           <input
                             type="checkbox"
                             :checked="member.roles?.some((item) => item.id === role.id)"
                             @change="toggleMemberRole(member, role, ($event.target as HTMLInputElement).checked)"
                           />
                           {{ role.name }}
-                        </span>
-                      </label>
+                        </label>
+                      </div>
                     </td>
                     <td><button class="primary" type="button" :disabled="!canAny('members:manage')" @click="saveMember(member)"><Save :size="16" /> Save</button></td>
                   </tr>

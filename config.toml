@@ -30,8 +30,8 @@ required_role = ""
 dev_allow_admin = true
 
 [cloudflare]
-images_account_id = ""
+images_account_id = "47765c1a6a9430ba1209e4f80255d9e6"
 images_api_token = ""
 # Example: "https://imagedelivery.net/<account_hash>"
-images_delivery_url = ""
+images_delivery_url = "https://imagedelivery.net/j6Pc2fEGD4GrWGwEw45rRw/"
 images_variant = "public"
