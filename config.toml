@@ -1,0 +1,37 @@
+# Only postgres is supported ;)
+[database]
+host = "46.62.211.150"
+port = 5432
+user = "tas"
+pass = "tas_password"
+database = "tas_db"
+timezone = "Europe/Berlin"
+
+[server]
+# The interface the server will listen on
+host = "0.0.0.0"
+# The port the server will listen on
+port = 8000
+
+[cors]
+origins = [
+  "http://localhost:5173",
+  "http://localhost:8000",
+  "https://tas.technulgy.com",
+  "https://technulgy.com"
+]
+
+[auth]
+# FusionAuth issuer, for example "https://auth.example.org".
+issuer = "https://auth.tghd.eu"
+client_id = ""
+required_role = ""
+# Keep false in production. True creates a local development admin without FusionAuth.
+dev_allow_admin = true
+
+[cloudflare]
+images_account_id = ""
+images_api_token = ""
+# Example: "https://imagedelivery.net/<account_hash>"
+images_delivery_url = ""
+images_variant = "public"

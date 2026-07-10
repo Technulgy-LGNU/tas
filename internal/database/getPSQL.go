@@ -1,7 +1,6 @@
 package database
 
 import (
-	"errors"
 	"fmt"
 	"tas/internal/config"
 
@@ -24,10 +23,11 @@ func GetPSQL(cfg *config.Config) (*gorm.DB, error) {
 
 	// Open connection to database
 	db, err := gorm.Open(postgres.Open(dbURI), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Silent),
+		DisableForeignKeyConstraintWhenMigrating: true,
+		Logger:                                   logger.Default.LogMode(logger.Silent),
 	})
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("error connecting to database: %v\n", err))
+		return nil, fmt.Errorf("error connecting to database: %w", err)
 	}
 
 	return db, nil

@@ -2,24 +2,20 @@ package database
 
 import "testing"
 
-func TestOrderRequestBeforeSaveCalculatesTotal(t *testing.T) {
+func TestOrderRequestNormalizeTotalsCalculatesTotal(t *testing.T) {
 	request := OrderRequest{Quantity: 3, UnitPriceCents: 1299}
 
-	if err := request.BeforeSave(); err != nil {
-		t.Fatal(err)
-	}
+	request.NormalizeTotals()
 
 	if request.TotalPriceCents != 3897 {
 		t.Fatalf("total = %d, want 3897", request.TotalPriceCents)
 	}
 }
 
-func TestOrderRequestBeforeSaveNormalizesInvalidValues(t *testing.T) {
+func TestOrderRequestNormalizeTotalsNormalizesInvalidValues(t *testing.T) {
 	request := OrderRequest{Quantity: 0, UnitPriceCents: -10}
 
-	if err := request.BeforeSave(); err != nil {
-		t.Fatal(err)
-	}
+	request.NormalizeTotals()
 
 	if request.Quantity != 1 {
 		t.Fatalf("quantity = %d, want 1", request.Quantity)

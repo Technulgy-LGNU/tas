@@ -1,6 +1,10 @@
 package database
 
-import "time"
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
 
 const (
 	MemberStatusPending  = "pending"
@@ -91,7 +95,7 @@ type OrderRequest struct {
 	OrderListItem   *OrderListItem `json:"order_list_item,omitempty"`
 }
 
-func (r *OrderRequest) BeforeSave() error {
+func (r *OrderRequest) NormalizeTotals() {
 	if r.Quantity < 1 {
 		r.Quantity = 1
 	}
@@ -99,6 +103,10 @@ func (r *OrderRequest) BeforeSave() error {
 		r.UnitPriceCents = 0
 	}
 	r.TotalPriceCents = int64(r.Quantity) * r.UnitPriceCents
+}
+
+func (r *OrderRequest) BeforeSave(*gorm.DB) error {
+	r.NormalizeTotals()
 	return nil
 }
 
@@ -136,7 +144,7 @@ type OrderListItem struct {
 	ReceivedInventoryItem   *InventoryItem `json:"received_inventory_item,omitempty"`
 }
 
-func (i *OrderListItem) BeforeSave() error {
+func (i *OrderListItem) NormalizeTotals() {
 	if i.Quantity < 1 {
 		i.Quantity = 1
 	}
@@ -144,6 +152,10 @@ func (i *OrderListItem) BeforeSave() error {
 		i.UnitPriceCents = 0
 	}
 	i.TotalPriceCents = int64(i.Quantity) * i.UnitPriceCents
+}
+
+func (i *OrderListItem) BeforeSave(*gorm.DB) error {
+	i.NormalizeTotals()
 	return nil
 }
 
@@ -198,7 +210,7 @@ type SponsorCategory struct {
 	Base
 	Name      string    `gorm:"uniqueIndex;size:180;not null" json:"name"`
 	SortOrder int       `json:"sort_order"`
-	Sponsors  []Sponsor `json:"sponsors,omitempty"`
+	Sponsors  []Sponsor `gorm:"foreignKey:CategoryID" json:"sponsors,omitempty"`
 }
 
 type Sponsor struct {
