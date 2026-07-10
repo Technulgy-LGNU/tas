@@ -244,6 +244,47 @@ th {
   align-items: center;
 }
 
+.tree,
+.list-browser {
+  display: grid;
+  gap: 6px;
+}
+
+.tree-row,
+.list-row {
+  width: 100%;
+  justify-content: space-between;
+  border-color: #d9dee3;
+  background: #f8fafb;
+  text-align: left;
+}
+
+.tree-row.active,
+.list-row.active {
+  border-color: #245f73;
+  background: #e4eef2;
+}
+
+.tree-name,
+.list-row > span:first-child {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.tree-toggle {
+  width: 17px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.list-row small {
+  color: #64727d;
+  font-size: 0.78rem;
+}
+
 .muted {
   color: #64727d;
 }

@@ -3,7 +3,10 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import {
   Box,
   Check,
+  ChevronDown,
+  ChevronRight,
   ClipboardList,
+  Edit3,
   Globe2,
   LogIn,
   LogOut,
@@ -13,7 +16,8 @@ import {
   Save,
   Send,
   Upload,
-  Users
+  Users,
+  X
 } from 'lucide-vue-next'
 import {
   clearToken,
@@ -48,6 +52,7 @@ import type {
 } from './types'
 
 type TabKey = 'inventory' | 'orders' | 'website' | 'members'
+type CategoryNode = InventoryCategory & { children: CategoryNode[]; depth: number }
 
 const authConfig = ref<AuthConfig | null>(null)
 const me = ref<MeResponse | null>(null)
@@ -65,6 +70,11 @@ const lists = ref<OrderList[]>([])
 const selectedListId = ref<number | null>(null)
 const selectedList = ref<OrderList | null>(null)
 const matches = ref<Record<number, InventoryMatch[]>>({})
+const editingInventoryId = ref<number | null>(null)
+const editingRequestId = ref<number | null>(null)
+const editingOrderItemId = ref<number | null>(null)
+const expandedCategoryIds = ref<Set<number>>(new Set())
+const selectedCategoryFilter = ref<number | null>(null)
 const images = ref<UploadedImage[]>([])
 const teams = ref<Team[]>([])
 const competitions = ref<Competition[]>([])
@@ -87,6 +97,18 @@ const itemForm = reactive({
 const requestForm = reactive({ name: '', quantity: 1, unit_price_cents: 0, url: '', notes: '', shop_name: '' })
 const listForm = reactive({ name: '' })
 const listItemForm = reactive({ name: '', quantity: 1, unit_price_cents: 0, url: '', notes: '', shop_name: '' })
+const inventoryEditForm = reactive({
+  name: '',
+  quantity: 0,
+  vendor_id: '',
+  product_url: '',
+  website: '',
+  notes: '',
+  category_id: null as number | null,
+  confirmed: true
+})
+const requestEditForm = reactive({ name: '', quantity: 1, unit_price_cents: 0, url: '', notes: '', shop_name: '' })
+const orderItemEditForm = reactive({ name: '', quantity: 1, unit_price_cents: 0, url: '', notes: '', shop_name: '' })
 const imageFile = ref<File | null>(null)
 const teamForm = reactive({ name: '', slug: '', summary: '', image_id: null as number | null, published: false, sort_order: 0 })
 const competitionForm = reactive({
@@ -125,6 +147,16 @@ const pendingRequestsByShop = computed(() => {
     grouped.set(key, [...(grouped.get(key) ?? []), request])
   }
   return Array.from(grouped.entries()).map(([shop, items]) => ({ shop, items }))
+})
+const categoryTree = computed(() => buildCategoryTree(categories.value))
+const visibleCategoryNodes = computed(() => flattenVisibleCategories(categoryTree.value, expandedCategoryIds.value))
+const categoryOptions = computed(() => flattenAllCategories(categoryTree.value))
+const filteredInventory = computed(() => {
+  if (!selectedCategoryFilter.value) {
+    return inventory.value
+  }
+  const categoryIDs = new Set<number>([selectedCategoryFilter.value, ...descendantCategoryIds(selectedCategoryFilter.value, categoryTree.value)])
+  return inventory.value.filter((item) => item.category_id !== null && item.category_id !== undefined && categoryIDs.has(item.category_id))
 })
 
 onMounted(async () => {
@@ -217,10 +249,15 @@ function toggleMemberRole(member: Member, role: Role, checked: boolean) {
 }
 
 async function loadInventory() {
-  ;[categories.value, inventory.value] = await Promise.all([
+  const [loadedCategories, loadedInventory] = await Promise.all([
     getJSON<InventoryCategory[]>('/inventory/categories'),
     getJSON<InventoryItem[]>('/inventory/items')
   ])
+  categories.value = loadedCategories
+  inventory.value = loadedInventory
+  if (expandedCategoryIds.value.size === 0) {
+    expandedCategoryIds.value = new Set(loadedCategories.filter((category) => !category.parent_id).map((category) => category.id))
+  }
 }
 
 async function createCategory() {
@@ -239,6 +276,47 @@ async function createInventoryItem() {
     await loadInventory()
     notice.value = 'Inventory item created'
   })
+}
+
+function editInventoryItem(item: InventoryItem) {
+  editingInventoryId.value = item.id
+  Object.assign(inventoryEditForm, {
+    name: item.name,
+    quantity: item.quantity,
+    vendor_id: item.vendor_id,
+    product_url: item.product_url,
+    website: item.website,
+    notes: item.notes,
+    category_id: item.category_id ?? null,
+    confirmed: item.confirmed
+  })
+}
+
+function cancelInventoryEdit() {
+  editingInventoryId.value = null
+}
+
+async function saveInventoryItem(item: InventoryItem) {
+  await run(async () => {
+    await patchJSON<InventoryItem>(`/inventory/items/${item.id}`, clean(inventoryEditForm))
+    editingInventoryId.value = null
+    await loadInventory()
+    notice.value = 'Inventory item saved'
+  })
+}
+
+function toggleCategory(category: InventoryCategory) {
+  const next = new Set(expandedCategoryIds.value)
+  if (next.has(category.id)) {
+    next.delete(category.id)
+  } else {
+    next.add(category.id)
+  }
+  expandedCategoryIds.value = next
+}
+
+function selectCategoryFilter(categoryID: number | null) {
+  selectedCategoryFilter.value = categoryID
 }
 
 async function reorder(item: InventoryItem) {
@@ -287,11 +365,41 @@ async function loadSelectedList() {
   selectedList.value = await getJSON<OrderList>(`/orders/lists/${selectedListId.value}`)
 }
 
+function openList(list: OrderList) {
+  selectedListId.value = list.id
+  void loadSelectedList()
+}
+
 async function approveRequest(request: OrderRequest) {
   await run(async () => {
     await postJSON<OrderListItem>(`/orders/requests/${request.id}/approve`, { order_list_id: selectedListId.value, list_name: listForm.name })
     await loadOrders()
     notice.value = 'Request added to order list'
+  })
+}
+
+function editRequest(request: OrderRequest) {
+  editingRequestId.value = request.id
+  Object.assign(requestEditForm, {
+    name: request.name,
+    quantity: request.quantity,
+    unit_price_cents: request.unit_price_cents,
+    url: request.url,
+    notes: request.notes,
+    shop_name: request.shop_name
+  })
+}
+
+function cancelRequestEdit() {
+  editingRequestId.value = null
+}
+
+async function saveRequest(request: OrderRequest) {
+  await run(async () => {
+    await patchJSON<OrderRequest>(`/orders/requests/${request.id}`, clean(requestEditForm))
+    editingRequestId.value = null
+    await loadOrders()
+    notice.value = 'Request saved'
   })
 }
 
@@ -302,6 +410,32 @@ async function addListItem() {
     Object.assign(listItemForm, { name: '', quantity: 1, unit_price_cents: 0, url: '', notes: '', shop_name: '' })
     await loadOrders()
     notice.value = 'List item added'
+  })
+}
+
+function editOrderItem(item: OrderListItem) {
+  editingOrderItemId.value = item.id
+  Object.assign(orderItemEditForm, {
+    name: item.name,
+    quantity: item.quantity,
+    unit_price_cents: item.unit_price_cents,
+    url: item.url,
+    notes: item.notes,
+    shop_name: item.shop_name
+  })
+}
+
+function cancelOrderItemEdit() {
+  editingOrderItemId.value = null
+}
+
+async function saveOrderItem(item: OrderListItem) {
+  await run(async () => {
+    await patchJSON<OrderListItem>(`/orders/lists/${item.order_list_id}/items/${item.id}`, clean(orderItemEditForm))
+    editingOrderItemId.value = null
+    await loadSelectedList()
+    await loadOrders()
+    notice.value = 'Order list item saved'
   })
 }
 
@@ -443,6 +577,86 @@ function nullableText(value: string) {
   const trimmed = value.trim()
   return trimmed === '' ? null : trimmed
 }
+
+function buildCategoryTree(source: InventoryCategory[]) {
+  const nodes = new Map<number, CategoryNode>()
+  for (const category of source) {
+    nodes.set(category.id, { ...category, children: [], depth: 0 })
+  }
+  const roots: CategoryNode[] = []
+  for (const node of nodes.values()) {
+    if (node.parent_id && nodes.has(node.parent_id)) {
+      const parent = nodes.get(node.parent_id)
+      if (parent) {
+        node.depth = parent.depth + 1
+        parent.children.push(node)
+      }
+    } else {
+      roots.push(node)
+    }
+  }
+  const sortNodes = (items: CategoryNode[]) => {
+    items.sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
+    for (const item of items) {
+      for (const child of item.children) {
+        child.depth = item.depth + 1
+      }
+      sortNodes(item.children)
+    }
+  }
+  sortNodes(roots)
+  return roots
+}
+
+function flattenVisibleCategories(nodes: CategoryNode[], expanded: Set<number>) {
+  const visible: CategoryNode[] = []
+  const visit = (node: CategoryNode) => {
+    visible.push(node)
+    if (expanded.has(node.id)) {
+      node.children.forEach(visit)
+    }
+  }
+  nodes.forEach(visit)
+  return visible
+}
+
+function flattenAllCategories(nodes: CategoryNode[]) {
+  const all: CategoryNode[] = []
+  const visit = (node: CategoryNode) => {
+    all.push(node)
+    node.children.forEach(visit)
+  }
+  nodes.forEach(visit)
+  return all
+}
+
+function descendantCategoryIds(categoryID: number, nodes: CategoryNode[]) {
+  const ids: number[] = []
+  const visit = (node: CategoryNode) => {
+    if (node.id === categoryID) {
+      collect(node)
+      return true
+    }
+    return node.children.some(visit)
+  }
+  const collect = (node: CategoryNode) => {
+    for (const child of node.children) {
+      ids.push(child.id)
+      collect(child)
+    }
+  }
+  nodes.some(visit)
+  return ids
+}
+
+function categoryHasChildren(category: CategoryNode) {
+  return category.children.length > 0
+}
+
+function categoryInventoryCount(category: CategoryNode) {
+  const ids = new Set<number>([category.id, ...descendantCategoryIds(category.id, categoryTree.value)])
+  return inventory.value.filter((item) => item.category_id !== null && item.category_id !== undefined && ids.has(item.category_id)).length
+}
 </script>
 
 <template>
@@ -529,16 +743,48 @@ function nullableText(value: string) {
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="item in inventory" :key="item.id">
-                      <td>
-                        <strong>{{ item.name }}</strong>
-                        <div class="muted">{{ item.product_url || item.website }}</div>
-                      </td>
-                      <td>{{ item.quantity }}</td>
-                      <td>{{ item.category?.name ?? '-' }}</td>
-                      <td>{{ item.vendor_id || '-' }}</td>
-                      <td><span class="badge" :class="{ good: item.confirmed, warn: !item.confirmed }">{{ item.confirmed ? 'confirmed' : 'unconfirmed' }}</span></td>
-                      <td><button type="button" :disabled="!canAny('orders:request')" @click="reorder(item)"><PackagePlus :size="16" /> Reorder</button></td>
+                    <tr v-for="item in filteredInventory" :key="item.id">
+                      <template v-if="editingInventoryId === item.id">
+                        <td>
+                          <label>Name<input v-model="inventoryEditForm.name" /></label>
+                          <label>Product URL<input v-model="inventoryEditForm.product_url" /></label>
+                        </td>
+                        <td><label>Qty<input v-model.number="inventoryEditForm.quantity" type="number" min="0" /></label></td>
+                        <td>
+                          <label>
+                            Category
+                            <select v-model="inventoryEditForm.category_id">
+                              <option :value="null">None</option>
+                              <option v-for="category in categoryOptions" :key="category.id" :value="category.id">
+                                {{ `${'· '.repeat(category.depth)}${category.name}` }}
+                              </option>
+                            </select>
+                          </label>
+                        </td>
+                        <td><label>Vendor<input v-model="inventoryEditForm.vendor_id" /></label></td>
+                        <td>
+                          <label><span><input v-model="inventoryEditForm.confirmed" type="checkbox" /> Confirmed</span></label>
+                          <label>Website<input v-model="inventoryEditForm.website" /></label>
+                        </td>
+                        <td class="actions">
+                          <button class="primary" type="button" @click="saveInventoryItem(item)"><Save :size="16" /> Save</button>
+                          <button type="button" @click="cancelInventoryEdit"><X :size="16" /> Cancel</button>
+                        </td>
+                      </template>
+                      <template v-else>
+                        <td>
+                          <strong>{{ item.name }}</strong>
+                          <div class="muted">{{ item.product_url || item.website }}</div>
+                        </td>
+                        <td>{{ item.quantity }}</td>
+                        <td>{{ item.category?.name ?? '-' }}</td>
+                        <td>{{ item.vendor_id || '-' }}</td>
+                        <td><span class="badge" :class="{ good: item.confirmed, warn: !item.confirmed }">{{ item.confirmed ? 'confirmed' : 'unconfirmed' }}</span></td>
+                        <td class="actions">
+                          <button type="button" :disabled="!canAny('inventory:edit', 'inventory:manage')" @click="editInventoryItem(item)"><Edit3 :size="16" /> Edit</button>
+                          <button type="button" :disabled="!canAny('orders:request')" @click="reorder(item)"><PackagePlus :size="16" /> Reorder</button>
+                        </td>
+                      </template>
                     </tr>
                   </tbody>
                 </table>
@@ -551,7 +797,7 @@ function nullableText(value: string) {
                 <label>Name<input v-model="itemForm.name" /></label>
                 <label>Quantity<input v-model.number="itemForm.quantity" type="number" min="0" /></label>
                 <label>Vendor ID<input v-model="itemForm.vendor_id" /></label>
-                <label>Category<select v-model="itemForm.category_id"><option :value="null">None</option><option v-for="category in categories" :key="category.id" :value="category.id">{{ category.name }}</option></select></label>
+                <label>Category<select v-model="itemForm.category_id"><option :value="null">None</option><option v-for="category in categoryOptions" :key="category.id" :value="category.id">{{ `${'· '.repeat(category.depth)}${category.name}` }}</option></select></label>
                 <label>Product URL<input v-model="itemForm.product_url" /></label>
                 <label>Website<input v-model="itemForm.website" /></label>
               </div>
@@ -562,11 +808,32 @@ function nullableText(value: string) {
               <div class="panel-header"><h3>Categories</h3></div>
               <div class="grid two">
                 <label>Name<input v-model="categoryForm.name" /></label>
-                <label>Parent<select v-model="categoryForm.parent_id"><option :value="null">Top level</option><option v-for="category in categories" :key="category.id" :value="category.id">{{ category.name }}</option></select></label>
+                <label>Parent<select v-model="categoryForm.parent_id"><option :value="null">Top level</option><option v-for="category in categoryOptions" :key="category.id" :value="category.id">{{ `${'· '.repeat(category.depth)}${category.name}` }}</option></select></label>
               </div>
               <button type="button" :disabled="!canAny('inventory:edit', 'inventory:manage')" @click="createCategory"><Plus :size="16" /> Add category</button>
-              <div class="actions">
-                <span v-for="category in categories" :key="category.id" class="badge">{{ category.name }}</span>
+              <div class="tree">
+                <button class="tree-row" :class="{ active: selectedCategoryFilter === null }" type="button" @click="selectCategoryFilter(null)">
+                  <span>All categories</span>
+                  <span class="badge">{{ inventory.length }}</span>
+                </button>
+                <button
+                  v-for="category in visibleCategoryNodes"
+                  :key="category.id"
+                  class="tree-row"
+                  :class="{ active: selectedCategoryFilter === category.id }"
+                  type="button"
+                  :style="{ paddingLeft: `${8 + category.depth * 18}px` }"
+                  @click="selectCategoryFilter(category.id)"
+                >
+                  <span class="tree-name">
+                    <span class="tree-toggle" @click.stop="categoryHasChildren(category) && toggleCategory(category)">
+                      <ChevronDown v-if="categoryHasChildren(category) && expandedCategoryIds.has(category.id)" :size="15" />
+                      <ChevronRight v-else-if="categoryHasChildren(category)" :size="15" />
+                    </span>
+                    {{ category.name }}
+                  </span>
+                  <span class="badge">{{ categoryInventoryCount(category) }}</span>
+                </button>
               </div>
             </div>
           </section>
@@ -586,10 +853,31 @@ function nullableText(value: string) {
                   <table>
                     <tbody>
                       <tr v-for="request in group.items" :key="request.id">
-                        <td><strong>{{ request.name }}</strong><div class="muted">{{ request.url }}</div></td>
-                        <td>{{ request.quantity }} × {{ formatCents(request.unit_price_cents) }}</td>
-                        <td>{{ formatCents(request.total_price_cents) }}</td>
-                        <td><button type="button" :disabled="!canAny('orders:manage')" @click="approveRequest(request)"><Check :size="16" /> Approve</button></td>
+                        <template v-if="editingRequestId === request.id">
+                          <td>
+                            <label>Name<input v-model="requestEditForm.name" /></label>
+                            <label>URL<input v-model="requestEditForm.url" /></label>
+                            <label>Notes<textarea v-model="requestEditForm.notes" /></label>
+                          </td>
+                          <td>
+                            <label>Quantity<input v-model.number="requestEditForm.quantity" type="number" min="1" /></label>
+                            <label>Unit price cents<input v-model.number="requestEditForm.unit_price_cents" type="number" min="0" /></label>
+                          </td>
+                          <td><label>Shop override<input v-model="requestEditForm.shop_name" /></label></td>
+                          <td class="actions">
+                            <button class="primary" type="button" @click="saveRequest(request)"><Save :size="16" /> Save</button>
+                            <button type="button" @click="cancelRequestEdit"><X :size="16" /> Cancel</button>
+                          </td>
+                        </template>
+                        <template v-else>
+                          <td><strong>{{ request.name }}</strong><div class="muted">{{ request.url }}</div></td>
+                          <td>{{ request.quantity }} × {{ formatCents(request.unit_price_cents) }}</td>
+                          <td>{{ formatCents(request.total_price_cents) }}</td>
+                          <td class="actions">
+                            <button type="button" :disabled="!canAny('orders:edit', 'orders:manage')" @click="editRequest(request)"><Edit3 :size="16" /> Edit</button>
+                            <button type="button" :disabled="!canAny('orders:manage')" @click="approveRequest(request)"><Check :size="16" /> Approve</button>
+                          </td>
+                        </template>
                       </tr>
                     </tbody>
                   </table>
@@ -611,12 +899,28 @@ function nullableText(value: string) {
 
               <div class="panel-header"><h3>Lists</h3></div>
               <div class="grid two">
-                <label>Selected list<select v-model="selectedListId" @change="loadSelectedList"><option :value="null">None</option><option v-for="list in lists" :key="list.id" :value="list.id">{{ list.name }} · {{ list.status }}</option></select></label>
                 <label>New list<input v-model="listForm.name" /></label>
               </div>
               <div class="actions">
                 <button type="button" :disabled="!canAny('orders:edit', 'orders:manage')" @click="createList"><Plus :size="16" /> Create list</button>
                 <button class="warning" type="button" :disabled="!selectedList || !canAny('orders:manage')" @click="publishList"><Check :size="16" /> Publish</button>
+              </div>
+              <div class="list-browser">
+                <button
+                  v-for="list in lists"
+                  :key="list.id"
+                  class="list-row"
+                  :class="{ active: selectedListId === list.id }"
+                  type="button"
+                  @click="openList(list)"
+                >
+                  <span>
+                    <strong>{{ list.name }}</strong>
+                    <small>{{ list.items?.length ?? 0 }} entries</small>
+                  </span>
+                  <span class="badge" :class="{ good: list.status === 'published' }">{{ list.status }}</span>
+                </button>
+                <div v-if="!lists.length" class="empty">No order lists yet.</div>
               </div>
             </div>
 
@@ -640,17 +944,43 @@ function nullableText(value: string) {
                   <thead><tr><th>Item</th><th>Shop</th><th>Total</th><th>Ordered</th><th>Received</th><th></th></tr></thead>
                   <tbody>
                     <tr v-for="item in selectedList?.items ?? []" :key="item.id">
-                      <td><strong>{{ item.name }}</strong><div class="muted">{{ item.quantity }} × {{ formatCents(item.unit_price_cents) }}</div></td>
-                      <td>{{ item.shop_name || item.shop_domain }}</td>
-                      <td>{{ formatCents(item.total_price_cents) }}</td>
-                      <td><span class="badge" :class="{ good: item.ordered }">{{ item.ordered ? 'yes' : 'no' }}</span></td>
-                      <td><span class="badge" :class="{ good: item.received }">{{ item.received ? 'yes' : 'no' }}</span></td>
-                      <td class="actions">
-                        <button type="button" :disabled="item.ordered || !canAny('orders:manage')" @click="markOrdered(item)">Ordered</button>
-                        <button type="button" :disabled="!canAny('orders:manage')" @click="loadMatches(item)">Matches</button>
-                        <button type="button" :disabled="item.received || !canAny('orders:manage')" @click="receiveItem(item)">Receive</button>
-                        <span v-if="matches[item.id]?.length" class="muted">{{ matches[item.id][0].item.name }} · {{ matches[item.id][0].score }}</span>
-                      </td>
+                      <template v-if="editingOrderItemId === item.id">
+                        <td>
+                          <label>Name<input v-model="orderItemEditForm.name" /></label>
+                          <label>URL<input v-model="orderItemEditForm.url" /></label>
+                          <label>Notes<textarea v-model="orderItemEditForm.notes" /></label>
+                        </td>
+                        <td><label>Shop override<input v-model="orderItemEditForm.shop_name" /></label></td>
+                        <td>
+                          <label>Quantity<input v-model.number="orderItemEditForm.quantity" type="number" min="1" /></label>
+                          <label>Unit price cents<input v-model.number="orderItemEditForm.unit_price_cents" type="number" min="0" /></label>
+                        </td>
+                        <td colspan="2"><span class="badge" :class="{ good: item.ordered }">{{ item.ordered ? 'ordered' : 'not ordered' }}</span></td>
+                        <td class="actions">
+                          <button class="primary" type="button" @click="saveOrderItem(item)"><Save :size="16" /> Save</button>
+                          <button type="button" @click="cancelOrderItemEdit"><X :size="16" /> Cancel</button>
+                        </td>
+                      </template>
+                      <template v-else>
+                        <td><strong>{{ item.name }}</strong><div class="muted">{{ item.quantity }} × {{ formatCents(item.unit_price_cents) }}</div></td>
+                        <td>{{ item.shop_name || item.shop_domain }}</td>
+                        <td>{{ formatCents(item.total_price_cents) }}</td>
+                        <td><span class="badge" :class="{ good: item.ordered }">{{ item.ordered ? 'yes' : 'no' }}</span></td>
+                        <td><span class="badge" :class="{ good: item.received }">{{ item.received ? 'yes' : 'no' }}</span></td>
+                        <td class="actions">
+                          <button
+                            type="button"
+                            :disabled="!canAny('orders:edit', 'orders:manage') || (selectedList?.status === 'published' && !canAny('orders:manage'))"
+                            @click="editOrderItem(item)"
+                          >
+                            <Edit3 :size="16" /> Edit
+                          </button>
+                          <button type="button" :disabled="item.ordered || !canAny('orders:manage')" @click="markOrdered(item)">Ordered</button>
+                          <button type="button" :disabled="!canAny('orders:manage')" @click="loadMatches(item)">Matches</button>
+                          <button type="button" :disabled="item.received || !canAny('orders:manage')" @click="receiveItem(item)">Receive</button>
+                          <span v-if="matches[item.id]?.length" class="muted">{{ matches[item.id][0].item.name }} · {{ matches[item.id][0].score }}</span>
+                        </td>
+                      </template>
                     </tr>
                   </tbody>
                 </table>
