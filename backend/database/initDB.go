@@ -6,7 +6,7 @@ import (
 )
 
 func InitDB(db *gorm.DB) {
-	if err := db.AutoMigrate(&Image{}, &WebsiteEntry{}, &WebsiteReference{}); err != nil {
-		log.Fatalf("Error migrating image library: %v", err)
+	if err := db.AutoMigrate(&Image{}, &WebsiteEntry{}, &WebsiteReference{}, &OrderList{}, &StandardPart{}); err != nil {
+		log.Fatalf("Error migrating database: %v", err)
 	}
 }

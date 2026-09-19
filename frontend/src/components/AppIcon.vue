@@ -1,6 +1,7 @@
 <script setup lang="ts">
 withDefaults(defineProps<{ name: string; size?: number }>(), { size: 20 })
 const paths: Record<string, string> = {
+  orders: 'M3 3h2l3 12h11l2-8H6M9 20h.01M18 20h.01M9 17h9',
   website: 'M3 4h18v16H3ZM3 9h18M7 6.5h.01M10 6.5h.01M9 9v11',
   home: 'm3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z',
   image:

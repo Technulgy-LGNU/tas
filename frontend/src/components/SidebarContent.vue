@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { currentUser, logout } from '@/lib/auth'
 import AppIcon from './AppIcon.vue'
+import { canViewOrders } from '@/lib/orders'
 withDefaults(defineProps<{ collapsed?: boolean; mobile?: boolean }>(), {
   collapsed: false,
   mobile: false,
@@ -63,6 +64,14 @@ async function signOut() {
         ><AppIcon name="website" /><span :class="{ 'sr-only': collapsed }"
           >Website</span
         ></RouterLink
+      >
+      <RouterLink
+        v-if="canViewOrders"
+        to="/orders"
+        class="nav-link"
+        :title="collapsed ? 'Orders' : undefined"
+        @click="emit('navigate')"
+        ><AppIcon name="orders" /><span :class="{ 'sr-only': collapsed }">Orders</span></RouterLink
       >
     </nav>
     <div class="sidebar-footer">

@@ -51,6 +51,7 @@ func NewApp(cfg *config.Config, db *gorm.DB) (*fiber.App, error) {
 	v1.Get("/auth/me", auth.Me)
 	// Register all future private API routes here, after RequireAuth.
 	a.registerImages(v1)
+	a.registerOrders(v1)
 	a.registerWebsite(app, v1)
 	app.Use("/api", func(c fiber.Ctx) error { return c.Status(404).JSON(fiber.Map{"error": "not_found"}) })
 	app.Use("/auth", func(c fiber.Ctx) error { return c.SendStatus(404) })

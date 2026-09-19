@@ -5,6 +5,17 @@ const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),
   routes: [
     { path: '/', name: 'home', component: () => import('@/views/HomeView.vue') },
+    { path: '/orders', name: 'orders', component: () => import('@/views/OrdersView.vue') },
+    {
+      path: '/orders/standard-parts',
+      name: 'standard-parts',
+      component: () => import('@/views/StandardPartsView.vue'),
+    },
+    {
+      path: '/orders/:id',
+      name: 'order-list',
+      component: () => import('@/views/OrderListView.vue'),
+    },
     {
       path: '/website',
       component: () => import('@/views/WebsiteLayout.vue'),

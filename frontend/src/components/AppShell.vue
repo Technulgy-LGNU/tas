@@ -9,13 +9,15 @@ const collapsed = ref(false)
 const drawer = ref<HTMLDialogElement>()
 const drawerOpen = ref(false)
 const title = computed(() =>
-  route.path.startsWith('/website')
-    ? 'Website'
-    : route.name === 'images'
-      ? 'Images'
-      : route.name === 'home'
-        ? 'Overview'
-        : 'Page not found',
+  route.path.startsWith('/orders')
+    ? 'Orders'
+    : route.path.startsWith('/website')
+      ? 'Website'
+      : route.name === 'images'
+        ? 'Images'
+        : route.name === 'home'
+          ? 'Overview'
+          : 'Page not found',
 )
 function toggle() {
   collapsed.value = !collapsed.value

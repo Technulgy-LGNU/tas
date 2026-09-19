@@ -79,13 +79,13 @@ After editing or replacing the TOML file, recreate TAS so it reads the current f
 docker compose up -d --no-deps --force-recreate --wait tas
 ```
 
-The container runs as a non-root user with a read-only filesystem. Its health check uses `/healthcheck`; PostgreSQL must be healthy before TAS starts. Startup runs the image-library and website-content database migrations. Uploaded image files stay in Cloudflare; the named PostgreSQL volume holds image metadata and website content. PostgreSQL is not published on a host port. Contact delivery needs outbound access to the configured SMTP host/port and stays disabled while the SMTP password is empty.
+The container runs as a non-root user with a read-only filesystem. Its health check uses `/healthcheck`; PostgreSQL must be healthy before TAS starts. Startup runs the image-library, website-content and orders database migrations. Uploaded image files stay in Cloudflare; the named PostgreSQL volume holds image metadata, website content and order data. PostgreSQL is not published on a host port. Contact delivery needs outbound access to the configured SMTP host/port and stays disabled while the SMTP password is empty.
 
 The PostgreSQL 18 volume is mounted at `/var/lib/postgresql`, matching the [official image layout](https://hub.docker.com/_/postgres). If you already used the previous `/var/lib/postgresql/data` mount, back up the running database and inspect its actual data volume before switching: existing data is not automatically relocated into `18/docker`. Do not remove an existing data volume to resolve a layout mismatch. Changing `POSTGRES_PASSWORD` in `.env` does not change the password in an already initialized database; update that database user's password and the TOML together.
 
 ## GitHub Actions
 
-The **Verify and build TAS** workflow runs on branch pushes, pull requests and manual dispatch. It lints/type-checks/builds the frontend, runs `go vet` and the backend race tests, and uses a disposable PostgreSQL 18 service for website integration tests. Tests use fake FusionAuth, Cloudflare and SMTP providers; no deployment secrets are needed. It also validates Compose/TOML and builds the amd64 Docker image.
+The **Verify and build TAS** workflow runs on branch pushes, pull requests and manual dispatch. It lints/type-checks/builds the frontend, runs `go vet` and the backend race tests, and uses a disposable PostgreSQL 18 service for website and orders integration tests. Tests use fake FusionAuth, Cloudflare and SMTP providers; no deployment secrets are needed. It also validates Compose/TOML and builds the amd64 Docker image.
 
 To publish, run the workflow manually and choose `image_tag` (default `latest`). After verification succeeds, it builds **linux/amd64** and **linux/arm64** and pushes `ghcr.io/<owner>/<repository>:<image_tag>` plus the full commit SHA tag using `GITHUB_TOKEN`. Automatic push/PR runs do not publish images. Manual publication does not deploy or restart TAS.
 
@@ -223,3 +223,11 @@ Select **Website** in the sidebar for Home, Teams, Participation History, Sponso
 Public resources start at `/website/home?lang=en`; use `lang=de` for German. The public website repository can consume them without FusionAuth. Configure its base URL and allowed origins under `[website]`. Contact submissions are emailed using `[website.contact]`; add the SMTP password and restart to enable sending. SSL stays in the website repository.
 
 See [the website API guide](docs/website-api.md) for all endpoints, response shapes, block rendering, SMTP configuration, permissions and integration testing.
+
+## Orders
+
+Open **Orders** to manage named lists, categories, part requests and a reusable standard-parts library. Prices use EUR, with exact cent totals calculated as amount × unit price. The overview links to Website management and shows order statistics.
+
+Assign `order_admin` to list managers and `order_request` to team requesters in FusionAuth. Editors can manage open-list parts and approve requests. Only `order_admin` and `admin` can change closed lists or mark parts ordered. Leave `[auth].required_role` empty to admit registered users with these roles.
+
+No new TOML configuration is needed; the database tables migrate at startup. See [the orders guide](docs/orders.md) for the role matrix, workflow, API and tests.

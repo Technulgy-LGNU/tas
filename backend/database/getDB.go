@@ -11,13 +11,12 @@ import (
 )
 
 func GetDB(cfg *config.Config) *gorm.DB {
-  var dbURI = fmt.Sprintf("host=%s port=%d user=%s dbname=%s sslmode=disable password=%s TimeZone=%s",
+  var dbURI = fmt.Sprintf("host=%s port=%d user=%s dbname=%s sslmode=disable password=%s",
     cfg.Database.Host,
     cfg.Database.Port,
     cfg.Database.User,
     cfg.Database.Database,
     cfg.Database.Password,
-    cfg.Database.TimeZone,
   )
 
   // Open connection to database
