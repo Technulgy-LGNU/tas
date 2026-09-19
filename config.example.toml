@@ -3,17 +3,21 @@
 host = "localhost"
 port = 5432
 user = "technulgy_tas"
-pass = "password"
+password = "password"
 database = "technulgy_tas_db"
 timezone = "Europe/Berlin"
 
 [auth]
-# FusionAuth issuer, for example "https://auth.example.org".
-issuer = ""
-client_id = ""
+# Address of the other laptop, reachable by your browser AND this backend.
+fusionauth_url = "http://192.168.1.100:9011"
+fusionauth_client_id = ""
+fusionauth_client_secret = ""
+fusionauth_tenant_id = ""
+oauth_redirect_uri = "http://localhost:2005/auth/callback"
+# Use http://localhost:5173/#/ when running Vite's dev server.
+frontend_url = "http://localhost:2005/#/"
+# Optional additional restriction, e.g. "admin". Empty allows all registered users.
 required_role = ""
-# Keep false in production. True creates a local development admin without FusionAuth.
-dev_allow_admin = true
 
 [cloudflare]
 images_account_id = ""

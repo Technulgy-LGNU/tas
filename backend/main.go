@@ -1,18 +1,16 @@
 package main
 
 import (
-	"fmt"
 	"tas/backend/config"
 	"tas/backend/database"
 	"tas/backend/web"
 )
 
 func main() {
-  var cfg = config.GetConfig()
-  fmt.Println(cfg)
+	var cfg = config.GetConfig()
 
-  var db = database.GetDB(cfg)
-  database.InitDB(db)
+	var db = database.GetDB(cfg)
+	database.InitDB(db)
 
-  web.InitWeb(cfg, db)
+	web.InitWeb(cfg, db)
 }

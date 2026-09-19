@@ -6,7 +6,7 @@ services:
     image: tas:local
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "2005:2005"
     volumes:
       # When using the postgres service below, set [database].host = "postgres" in ./config.toml.
       - ./config.toml:/app/config.toml:ro

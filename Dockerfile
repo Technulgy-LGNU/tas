@@ -9,7 +9,7 @@ RUN npm ci
 COPY frontend/ ./
 RUN npm run build
 
-FROM --platform=$BUILDPLATFORM golang:1.26.4-bookworm AS backend-build
+FROM --platform=$BUILDPLATFORM golang:1.27.1-bookworm AS backend-build
 WORKDIR /src
 ARG TARGETOS
 ARG TARGETARCH
@@ -17,9 +17,8 @@ ARG TARGETARCH
 COPY go.mod go.sum ./
 RUN go mod download
 
-COPY cmd/ ./cmd/
-COPY internal ./internal
-RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w" -o /out/tas-server ./cmd/tas-server
+COPY backend/ ./backend/
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w" -o /out/tas-server ./backend
 
 FROM debian:bookworm-slim AS runtime
 RUN apt-get update \
@@ -33,6 +32,6 @@ COPY --from=frontend-build /src/frontend/dist /app/frontend/dist
 COPY config.example.toml /app/config.example.toml
 
 USER tas
-EXPOSE 8000
+EXPOSE 2005
 
 ENTRYPOINT ["/app/tas-server"]
