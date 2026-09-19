@@ -5,6 +5,7 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/static"
 	"gorm.io/gorm"
 	"log"
+	"log/slog"
 	"tas/backend/cloudflare"
 	"tas/backend/config"
 	"tas/backend/contact"
@@ -30,6 +31,7 @@ func NewApp(cfg *config.Config, db *gorm.DB) (*fiber.App, error) {
 		a.Images = database.PostgresImages{DB: db}
 	}
 	app := fiber.New(fiber.Config{ServerHeader: "tas:fiber", AppName: "TAS", Immutable: true, BodyLimit: maxImageBytes + 1024*1024})
+	app.Use(requestLogging)
 	app.Use(func(c fiber.Ctx) error {
 		c.Set("Referrer-Policy", "no-referrer")
 		c.Set("X-Content-Type-Options", "nosniff")
@@ -64,6 +66,9 @@ func InitWeb(cfg *config.Config, db *gorm.DB) {
 	if cfg.Auth.DisableFusionAuth {
 		log.Print("Local development mode: FusionAuth disabled; requests run as local admin. Listening on loopback only.")
 	}
+	slog.Info("server.starting", "listen_address", listenAddress(cfg),
+		"frontend_url", logURL(cfg.Auth.FrontendURL), "callback_url", logURL(cfg.Auth.OAuthRedirectURI),
+		"fusionauth_url", logURL(cfg.Auth.FusionAuthURL), "fusionauth_disabled", cfg.Auth.DisableFusionAuth)
 	log.Fatal(app.Listen(listenAddress(cfg)))
 }
 

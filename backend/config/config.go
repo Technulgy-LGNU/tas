@@ -9,6 +9,9 @@ import (
 )
 
 type Config struct {
+	Logging struct {
+		Level string `toml:"level"`
+	} `toml:"logging"`
 	Website struct {
 		AllowedOrigins []string       `toml:"allowed_origins"`
 		PublicURL      string         `toml:"public_url"`

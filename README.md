@@ -89,6 +89,48 @@ The **Verify and build TAS** workflow runs on branch pushes, pull requests and m
 
 To publish, run the workflow manually and choose `image_tag` (default `latest`). After verification succeeds, it builds **linux/amd64** and **linux/arm64** and pushes `ghcr.io/<owner>/<repository>:<image_tag>` plus the full commit SHA tag using `GITHUB_TOKEN`. Automatic push/PR runs do not publish images. Manual publication does not deploy or restart TAS.
 
+## Login and tunnel diagnostics
+
+For the deployed domains, set these values in the mounted TOML (keep the existing client ID, secret and tenant ID):
+
+```toml
+[auth]
+disable_fusionauth = false
+fusionauth_url = "https://auth.technulgy.com"
+oauth_redirect_uri = "https://tas.technulgy.com/auth/callback"
+frontend_url = "https://tas.technulgy.com/#/"
+```
+
+In the TAS application in FusionAuth, add **Authorized redirect URL** `https://tas.technulgy.com/auth/callback` with exact matching and set **Logout URL** to `https://tas.technulgy.com/#/login`. The callback has no hash and no trailing slash. A callback mismatch affects the authorization flow; it does not prevent TAS's own sign-in page from rendering. TAS first displays its sign-in screen, and its button starts the FusionAuth redirect. Opening `https://tas.technulgy.com/auth/login` directly tests this redirect without needing frontend JavaScript. See [FusionAuth application settings](https://fusionauth.io/docs/get-started/core-concepts/types/applications).
+
+New images include structured JSON request/auth logs. To see successful provider calls and request-start events too, add:
+
+```toml
+[logging]
+level = "debug"
+```
+
+The default is `info`; `warn` and `error` are also supported. Publish the updated image through GitHub Actions first, select its tag/SHA in `.env`, and recreate TAS after configuration changes:
+
+```sh
+docker compose up -d --no-deps --force-recreate --wait tas
+docker compose logs --follow --tail=200 --timestamps tas
+```
+
+Request logs include method, path, status, duration, the received Host/Origin and forwarded host/protocol, and Cloudflare's `CF-Ray` when present. Those proxy headers are diagnostic observations, not trusted authentication data. Each response carries a server-generated `X-Request-ID` that connects browser Network entries to request/auth/provider logs. Healthy `/healthcheck` responses are logged only at debug level. New request/auth logs omit cookies, Authorization headers, bodies, identity claims, URL query parameters and fragments; redirect targets are sanitized. Provider failures log status/content type or a DNS, timeout, TLS-certificate or connection category, rather than potentially sensitive error text or response bodies.
+
+| Observation | What to check |
+| --- | --- |
+| No corresponding `http.request` at info/debug level | Request may not reach TAS; check the tunnel, Access/WAF policies, cached responses and the selected origin service. |
+| `GET /api/v1/auth/me` returns 401 | Expected before login; the frontend should show the TAS sign-in screen. |
+| `GET /auth/login` returns 303 with `auth.login_started` | TAS issued the FusionAuth redirect; inspect the next browser request to the auth domain. |
+| `auth.origin_rejected` | Match public TAS URLs in the TOML; the log shows expected origins and whether the CSRF header was valid. |
+| `auth.callback_failed` with `invalid_state` | Check cookie/hostname consistency, expired attempts, a backend restart, or requests going to different TAS instances. Debug logs distinguish missing cookies from missing attempts. |
+| `auth.provider_response` is 302/403, or `invalid_json_response` with HTML | The backend may be receiving an Access login/challenge instead of the FusionAuth API response; correlate its `CF-Ray` with Cloudflare events. |
+| `auth.claims_rejected` | Check application registration, tenant, token expiry and any required role; booleans identify the failed checks without logging claims. |
+
+If the page stays blank but the HTML and assets return 200, inspect the browser Console and Network tabs for JavaScript failures. Backend logs cannot observe JavaScript that never executes. Cloudflare Access is separate from Tunnel; TAS's server-to-server FusionAuth calls do not send Cloudflare Access service credentials. FusionAuth also offers **Enable debug logging** in its application's OAuth settings for diagnosing rejected authorization requests.
+
 ## Working without FusionAuth
 
 For local development when your FusionAuth laptop is unavailable, set this in `config.toml` and restart the backend:

@@ -3,6 +3,12 @@
 # at /app/config.toml. TAS reads this file at startup; recreate TAS after edits.
 # Values are literal TOML: ${ENV_VAR} placeholders are NOT expanded by TAS.
 
+[logging]
+# JSON logs in docker compose logs. Use "debug" while diagnosing login/tunnels.
+# Default when omitted: "info". Also supports "warn" and "error".
+# No request bodies, cookies, tokens, or URL query strings are logged by this logger.
+level = "info"
+
 [database]
 # "postgres" is the bundled Compose service. For go run, use your database host.
 host = "postgres"

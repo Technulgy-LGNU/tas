@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"slices"
@@ -153,6 +154,7 @@ func (a *Auth) prune() {
 
 func (a *Auth) Login(c fiber.Ctx) error {
 	if a.cfg.DisableFusionAuth {
+		requestLogger(c.Context()).Info("auth.local_development")
 		return c.Redirect().To(a.page(safeReturnTo(c.Query("returnTo"))))
 	}
 	id, state, verifier := randomToken(), randomToken(), randomToken()
@@ -161,6 +163,7 @@ func (a *Auth) Login(c fiber.Ctx) error {
 	delete(a.logins, c.Cookies(loginCookie))
 	if len(a.logins) >= maxSessions {
 		a.mu.Unlock()
+		requestLogger(c.Context()).Warn("auth.login_rejected", "reason", "too_many_login_attempts")
 		return c.SendStatus(fiber.StatusTooManyRequests)
 	}
 	a.logins[id] = loginAttempt{state: state, verifier: verifier, returnTo: safeReturnTo(c.Query("returnTo")), expires: time.Now().Add(loginLifetime)}
@@ -171,6 +174,8 @@ func (a *Auth) Login(c fiber.Ctx) error {
 		"redirect_uri": {a.cfg.OAuthRedirectURI}, "response_type": {"code"},
 		"scope": {"openid email profile offline_access"}, "state": {state},
 		"code_challenge": {base64.RawURLEncoding.EncodeToString(hash[:])}, "code_challenge_method": {"S256"}}
+	requestLogger(c.Context()).Info("auth.login_started", "provider", logURL(a.cfg.FusionAuthURL),
+		"callback", logURL(a.cfg.OAuthRedirectURI), "secure_cookie", a.secure)
 	return c.Redirect().To(a.cfg.FusionAuthURL + "/oauth2/authorize?" + q.Encode())
 }
 
@@ -181,26 +186,42 @@ type tokenResponse struct {
 }
 
 func (a *Auth) post(ctx context.Context, path string, form url.Values, result any) error {
+	start := time.Now()
+	logger := requestLogger(ctx).With("endpoint", path)
 	form.Set("client_id", a.cfg.FusionAuthClientId)
 	form.Set("client_secret", a.cfg.FusionAuthSecret)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, a.cfg.FusionAuthURL+path, strings.NewReader(form.Encode()))
 	if err != nil {
+		logger.WarnContext(ctx, "auth.provider_failed", "reason", "invalid_request_url")
 		return err
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Accept", "application/json")
 	res, err := a.client.Do(req)
 	if err != nil {
+		logger.WarnContext(ctx, "auth.provider_failed", "reason", providerErrorKind(err), "duration_ms", time.Since(start).Milliseconds())
 		return err
 	}
 	defer res.Body.Close()
+	level := slog.LevelDebug
+	if res.StatusCode != 200 {
+		level = slog.LevelWarn
+	}
+	logger.Log(ctx, level, "auth.provider_response", "status", res.StatusCode,
+		"content_type", logField(res.Header.Get("Content-Type")), "redirect", logURL(res.Header.Get("Location")),
+		"cf_ray", logField(res.Header.Get("CF-Ray")), "duration_ms", time.Since(start).Milliseconds())
 	if res.StatusCode == 400 || res.StatusCode == 401 || res.StatusCode == 403 {
 		return errUnauthorized
 	}
 	if res.StatusCode != 200 {
 		return fmt.Errorf("FusionAuth returned HTTP %d", res.StatusCode)
 	}
-	return json.NewDecoder(io.LimitReader(res.Body, 1<<20)).Decode(result)
+	err = json.NewDecoder(io.LimitReader(res.Body, 1<<20)).Decode(result)
+	if err != nil {
+		logger.WarnContext(ctx, "auth.provider_failed", "reason", "invalid_json_response",
+			"status", res.StatusCode, "content_type", logField(res.Header.Get("Content-Type")))
+	}
+	return err
 }
 
 // Introspection verifies the token with FusionAuth; never trust locally decoded JWT claims.
@@ -221,6 +242,11 @@ func (a *Auth) inspect(ctx context.Context, token string) (User, time.Time, erro
 	}
 	if !claims.Active || claims.ApplicationID != a.cfg.FusionAuthClientId || claims.TenantID != a.cfg.FusionAuthTenantId || claims.Subject == "" || claims.Exp <= time.Now().Unix() ||
 		(a.cfg.RequiredRole != "" && !slices.Contains(claims.Roles, a.cfg.RequiredRole)) {
+		requestLogger(ctx).WarnContext(ctx, "auth.claims_rejected",
+			"active", claims.Active, "application_matches", claims.ApplicationID == a.cfg.FusionAuthClientId,
+			"tenant_matches", claims.TenantID == a.cfg.FusionAuthTenantId, "subject_present", claims.Subject != "",
+			"expired", claims.Exp <= time.Now().Unix(),
+			"required_role_present", a.cfg.RequiredRole == "" || slices.Contains(claims.Roles, a.cfg.RequiredRole))
 		return User{}, time.Time{}, errUnauthorized
 	}
 	return User{ID: claims.Subject, Email: claims.Email, Username: claims.Username, Roles: claims.Roles}, time.Unix(claims.Exp, 0), nil
@@ -235,7 +261,12 @@ func (a *Auth) Callback(c fiber.Ctx) error {
 	delete(a.logins, c.Cookies(loginCookie)) // Each attempt is single-use, including failures.
 	a.mu.Unlock()
 	a.cookie(c, loginCookie, "", -time.Hour)
-	fail := func(reason string) error { return c.Redirect().To(a.page("/login?error=" + reason)) }
+	fail := func(reason string) error {
+		requestLogger(c.Context()).Warn("auth.callback_failed", "reason", reason)
+		return c.Redirect().To(a.page("/login?error=" + reason))
+	}
+	requestLogger(c.Context()).Debug("auth.callback_received", "login_cookie_present", c.Cookies(loginCookie) != "",
+		"attempt_found", ok, "code_present", c.Query("code") != "", "provider_error_present", c.Query("error") != "")
 	if !ok || !time.Now().Before(attempt.expires) || subtle.ConstantTimeCompare([]byte(c.Query("state")), []byte(attempt.state)) != 1 {
 		return fail("invalid_state")
 	}
@@ -273,6 +304,7 @@ func (a *Auth) Callback(c fiber.Ctx) error {
 		tokenExpires: expiry, expires: time.Now().Add(sessionLifetime), user: user}
 	a.mu.Unlock()
 	a.cookie(c, sessionCookie, id, sessionLifetime)
+	requestLogger(c.Context()).Info("auth.login_succeeded")
 	return c.Redirect().To(a.page(attempt.returnTo))
 }
 
@@ -285,6 +317,10 @@ func (a *Auth) CSRF(c fiber.Ctx) error {
 	callback, _ := url.Parse(a.cfg.OAuthRedirectURI)
 	origin := c.Get("Origin")
 	if c.Get("X-TAS-CSRF") != "1" || (origin != "" && origin != a.frontend.Scheme+"://"+a.frontend.Host && origin != callback.Scheme+"://"+callback.Host) {
+		requestLogger(c.Context()).Warn("auth.origin_rejected", "origin", logURL(origin),
+			"frontend_origin", a.frontend.Scheme+"://"+a.frontend.Host,
+			"callback_origin", callback.Scheme+"://"+callback.Host,
+			"csrf_header_valid", c.Get("X-TAS-CSRF") == "1")
 		return c.Status(403).JSON(fiber.Map{"error": "invalid_request_origin"})
 	}
 	return c.Next()
@@ -301,6 +337,7 @@ func (a *Auth) RequireAuth(c fiber.Ctx) error {
 	session := a.sessions[id]
 	a.mu.Unlock()
 	if session == nil {
+		requestLogger(c.Context()).Debug("auth.session_missing", "session_cookie_present", id != "")
 		return a.unauthorized(c)
 	}
 	session.mu.Lock()
@@ -313,9 +350,11 @@ func (a *Auth) RequireAuth(c fiber.Ctx) error {
 		a.mu.Lock()
 		delete(a.sessions, id)
 		a.mu.Unlock()
+		requestLogger(c.Context()).Info("auth.session_rejected")
 		return a.unauthorized(c)
 	}
 	if err != nil {
+		requestLogger(c.Context()).Warn("auth.session_unavailable")
 		return c.Status(503).JSON(fiber.Map{"error": "authentication_unavailable"})
 	}
 	c.Locals("user", user)
