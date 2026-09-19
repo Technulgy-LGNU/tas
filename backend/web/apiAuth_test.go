@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -331,5 +332,102 @@ func TestAppProtectionAndConfig(t *testing.T) {
 	auth, err := NewAuth(cfg.Auth)
 	if err != nil || !auth.secure {
 		t.Fatal("HTTPS must enable secure cookies")
+	}
+}
+
+func TestLocalDevelopmentMode(t *testing.T) {
+	cfg := &config.Config{Auth: config.AuthConfig{DisableFusionAuth: true}}
+	app, err := NewApp(cfg, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := app.Test(httptest.NewRequest("GET", "/api/v1/auth/me", nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	var body struct {
+		User User `json:"user"`
+	}
+	if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+	if res.StatusCode != 200 || !body.User.LocalDevelopment || body.User.ID != "local-development-admin" || !slices.Contains(body.User.Roles, "admin") || !slices.Contains(body.User.Roles, "editor") {
+		t.Fatalf("wrong local identity: status %d, %+v", res.StatusCode, body.User)
+	}
+	if listenAddress(cfg) != "127.0.0.1:2005" {
+		t.Fatal("local bypass must bind to loopback")
+	}
+	for _, path := range []string{"/auth/login?returnTo=%2Fimages", "/api/v1/auth/login?returnTo=%2Fimages", "/auth/callback?code=ignored"} {
+		res, err := app.Test(httptest.NewRequest("GET", path, nil))
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = res.Body.Close()
+		target := "http://localhost:2005/#/images"
+		if strings.HasPrefix(path, "/auth/callback") {
+			target = "http://localhost:2005/#/"
+		}
+		if res.StatusCode != 303 || res.Header.Get("Location") != target {
+			t.Fatalf("local auth endpoint redirected incorrectly: %s %d %s", path, res.StatusCode, res.Header.Get("Location"))
+		}
+	}
+	for _, tc := range []struct {
+		origin, header string
+		status         int
+	}{
+		{"http://localhost:2005", "1", 200}, {"http://localhost:2005", "", 403}, {"https://evil.example", "1", 403},
+	} {
+		req := httptest.NewRequest("POST", "/api/v1/auth/logout", nil)
+		req.Header.Set("Origin", tc.origin)
+		req.Header.Set("X-TAS-CSRF", tc.header)
+		res, err := app.Test(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if res.StatusCode != tc.status {
+			t.Fatalf("local CSRF status: %d, want %d", res.StatusCode, tc.status)
+		}
+		if res.StatusCode == 200 {
+			var payload map[string]string
+			if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
+				t.Fatal(err)
+			}
+			if payload["logout_url"] != "http://localhost:2005/#/" {
+				t.Fatal("local logout tried to use FusionAuth")
+			}
+		}
+		_ = res.Body.Close()
+	}
+	// Disabling local mode must immediately restore normal startup validation.
+	cfg.Auth.DisableFusionAuth = false
+	if _, err := NewApp(cfg, nil); err == nil {
+		t.Fatal("normal mode accepted missing FusionAuth credentials")
+	}
+	if listenAddress(cfg) != "0.0.0.0:2005" {
+		t.Fatal("normal listen address changed")
+	}
+}
+
+func TestLocalUserPassesRoleMiddleware(t *testing.T) {
+	auth, err := NewAuth(config.AuthConfig{DisableFusionAuth: true, RequiredRole: "a-role-from-the-offline-provider"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// A nil client makes any unexpected FusionAuth call fail the test.
+	auth.client = nil
+	app := fiber.New()
+	app.Use(auth.RequireAuth)
+	app.Get("/admin", RequireRoles("admin"), auth.Me)
+	app.Get("/editor", RequireRoles("editor"), auth.Me)
+	for _, path := range []string{"/admin", "/editor"} {
+		res, err := app.Test(httptest.NewRequest("GET", path, nil))
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = res.Body.Close()
+		if res.StatusCode != 200 {
+			t.Fatalf("local role access failed for %s", path)
+		}
 	}
 }

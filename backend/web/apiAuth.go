@@ -32,10 +32,11 @@ const (
 var errUnauthorized = errors.New("authentication required")
 
 type User struct {
-	ID       string   `json:"id"`
-	Email    string   `json:"email"`
-	Username string   `json:"username"`
-	Roles    []string `json:"roles"`
+	ID               string   `json:"id"`
+	Email            string   `json:"email"`
+	Username         string   `json:"username"`
+	Roles            []string `json:"roles"`
+	LocalDevelopment bool     `json:"localDevelopment,omitempty"`
 }
 
 type loginAttempt struct {
@@ -64,7 +65,19 @@ type Auth struct {
 }
 
 func NewAuth(cfg config.AuthConfig) (*Auth, error) {
-	for name, raw := range map[string]string{"fusionauth_url": cfg.FusionAuthURL, "oauth_redirect_uri": cfg.OAuthRedirectURI, "frontend_url": cfg.FrontendURL} {
+	if cfg.DisableFusionAuth {
+		if cfg.FrontendURL == "" {
+			cfg.FrontendURL = "http://localhost:2005/#/"
+		}
+		if cfg.OAuthRedirectURI == "" {
+			cfg.OAuthRedirectURI = "http://localhost:2005/auth/callback"
+		}
+	}
+	urls := map[string]string{"oauth_redirect_uri": cfg.OAuthRedirectURI, "frontend_url": cfg.FrontendURL}
+	if !cfg.DisableFusionAuth {
+		urls["fusionauth_url"] = cfg.FusionAuthURL
+	}
+	for name, raw := range urls {
 		u, err := url.Parse(raw)
 		if err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") || u.User != nil {
 			return nil, fmt.Errorf("auth.%s must be an absolute HTTP(S) URL", name)
@@ -76,7 +89,7 @@ func NewAuth(cfg config.AuthConfig) (*Auth, error) {
 			return nil, errors.New("auth.oauth_redirect_uri must use /auth/callback")
 		}
 	}
-	if cfg.FusionAuthClientId == "" || cfg.FusionAuthSecret == "" || cfg.FusionAuthTenantId == "" {
+	if !cfg.DisableFusionAuth && (cfg.FusionAuthClientId == "" || cfg.FusionAuthSecret == "" || cfg.FusionAuthTenantId == "") {
 		return nil, errors.New("auth requires fusionauth_client_id, fusionauth_client_secret and fusionauth_tenant_id")
 	}
 	cfg.FusionAuthURL = strings.TrimRight(cfg.FusionAuthURL, "/")
@@ -139,6 +152,9 @@ func (a *Auth) prune() {
 }
 
 func (a *Auth) Login(c fiber.Ctx) error {
+	if a.cfg.DisableFusionAuth {
+		return c.Redirect().To(a.page(safeReturnTo(c.Query("returnTo"))))
+	}
 	id, state, verifier := randomToken(), randomToken(), randomToken()
 	a.mu.Lock()
 	a.prune()
@@ -211,6 +227,9 @@ func (a *Auth) inspect(ctx context.Context, token string) (User, time.Time, erro
 }
 
 func (a *Auth) Callback(c fiber.Ctx) error {
+	if a.cfg.DisableFusionAuth {
+		return c.Redirect().To(a.page("/"))
+	}
 	a.mu.Lock()
 	attempt, ok := a.logins[c.Cookies(loginCookie)]
 	delete(a.logins, c.Cookies(loginCookie)) // Each attempt is single-use, including failures.
@@ -273,6 +292,10 @@ func (a *Auth) CSRF(c fiber.Ctx) error {
 
 // RequireAuth protects API routes and exposes the verified User through c.Locals("user").
 func (a *Auth) RequireAuth(c fiber.Ctx) error {
+	if a.cfg.DisableFusionAuth {
+		c.Locals("user", User{ID: "local-development-admin", Username: "Local admin", Roles: []string{"admin", "editor"}, LocalDevelopment: true})
+		return c.Next()
+	}
 	id := c.Cookies(sessionCookie)
 	a.mu.Lock()
 	session := a.sessions[id]
@@ -340,6 +363,11 @@ func (a *Auth) Me(c fiber.Ctx) error { return c.JSON(fiber.Map{"user": c.Locals(
 
 // Logout always works locally, even when FusionAuth is unavailable or the session expired.
 func (a *Auth) Logout(c fiber.Ctx) error {
+	if a.cfg.DisableFusionAuth {
+		a.cookie(c, sessionCookie, "", -time.Hour)
+		a.cookie(c, loginCookie, "", -time.Hour)
+		return c.JSON(fiber.Map{"logout_url": a.page("/")})
+	}
 	a.mu.Lock()
 	if s := a.sessions[c.Cookies(sessionCookie)]; s != nil {
 		s.mu.Lock()

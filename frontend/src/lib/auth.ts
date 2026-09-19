@@ -5,6 +5,7 @@ export interface User {
   email: string
   username: string
   roles: string[] | null
+  localDevelopment?: boolean
 }
 
 export const currentUser = ref<User | null>(null)

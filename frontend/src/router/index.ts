@@ -5,6 +5,7 @@ const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),
   routes: [
     { path: '/', name: 'home', component: () => import('@/views/HomeView.vue') },
+    { path: '/images', name: 'images', component: () => import('@/views/ImagesView.vue') },
     { path: '/login', name: 'login', component: () => import('@/views/LoginView.vue'), meta: { public: true } },
     { path: '/:pathMatch(.*)*', name: '404', component: () => import('@/views/404View.vue') },
   ],

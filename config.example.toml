@@ -8,6 +8,9 @@ database = "technulgy_tas_db"
 timezone = "Europe/Berlin"
 
 [auth]
+# Local development only: bypass FusionAuth and use a local admin.
+# When true, TAS listens on 127.0.0.1 only. Restart after changing.
+disable_fusionauth = false
 # Address of the other laptop, reachable by your browser AND this backend.
 fusionauth_url = "http://192.168.1.100:9011"
 fusionauth_client_id = ""

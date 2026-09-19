@@ -2,6 +2,7 @@
 import { onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { checkSession } from '@/lib/auth'
+import AppShell from '@/components/AppShell.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -27,5 +28,6 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <main><RouterView /></main>
+  <main v-if="route.meta.public" class="auth-main"><RouterView /></main>
+  <AppShell v-else><RouterView /></AppShell>
 </template>

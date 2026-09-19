@@ -28,6 +28,7 @@ type Config struct {
 }
 
 type AuthConfig struct {
+	DisableFusionAuth  bool   `toml:"disable_fusionauth"`
 	FusionAuthURL      string `toml:"fusionauth_url"`
 	FusionAuthClientId string `toml:"fusionauth_client_id"`
 	FusionAuthSecret   string `toml:"fusionauth_client_secret"`
