@@ -22,7 +22,7 @@ RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags=
 
 FROM debian:bookworm-slim AS runtime
 RUN apt-get update \
-	&& apt-get install -y --no-install-recommends ca-certificates \
+	&& apt-get install -y --no-install-recommends ca-certificates curl \
 	&& rm -rf /var/lib/apt/lists/* \
 	&& useradd --system --uid 10001 --home-dir /app --shell /usr/sbin/nologin tas
 
@@ -33,5 +33,8 @@ COPY config.example.toml /app/config.example.toml
 
 USER tas
 EXPOSE 2005
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+  CMD curl --fail --silent --show-error --max-time 4 http://127.0.0.1:2005/healthcheck || exit 1
 
 ENTRYPOINT ["/app/tas-server"]

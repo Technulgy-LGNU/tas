@@ -1,48 +1,70 @@
-# Only postgres is supported ;)
+# Copy to your own config.toml and fill in credentials. Do not commit that file.
+# Docker: set TAS_CONFIG_FILE in .env to its host path. It is mounted read-only
+# at /app/config.toml. TAS reads this file at startup; recreate TAS after edits.
+# Values are literal TOML: ${ENV_VAR} placeholders are NOT expanded by TAS.
+
 [database]
-host = "localhost"
+# "postgres" is the bundled Compose service. For go run, use your database host.
+host = "postgres"
 port = 5432
 user = "technulgy_tas"
-password = "password"
+# Must match POSTGRES_PASSWORD in Compose's .env when using its database.
+password = "change-me"
 database = "technulgy_tas_db"
 timezone = "Europe/Berlin"
+# Startup automatically migrates image metadata and website content tables.
+# This backend currently uses sslmode=disable; the bundled DB has no public port.
 
 [auth]
-# Local development only: bypass FusionAuth and use a local admin.
-# When true, TAS listens on 127.0.0.1 only. Restart after changing.
+# Keep false in Docker. The bypass binds to container loopback and cannot be
+# reached through a published Docker port. Use true only for native local work.
 disable_fusionauth = false
-# Address of the other laptop, reachable by your browser AND this backend.
+# A URL reachable by BOTH the browser and TAS container (e.g. the other laptop).
+# localhost here would refer to the container, not the FusionAuth machine.
 fusionauth_url = "http://192.168.1.100:9011"
 fusionauth_client_id = ""
 fusionauth_client_secret = ""
 fusionauth_tenant_id = ""
+# Browser-facing TAS URLs, not Docker service names. For a deployment, replace
+# these with https://admin.your-domain.example/auth/callback and .../#/.
+# Register the exact callback in FusionAuth. Frontend/callback must share origin.
 oauth_redirect_uri = "http://localhost:2005/auth/callback"
-# Use http://localhost:5173/#/ when running Vite's dev server.
 frontend_url = "http://localhost:2005/#/"
-# Optional additional restriction, e.g. "admin". Empty allows all registered users.
+# Leave empty to admit registered users, including editors. Roles still control
+# editing (editor/admin) and deletion (admin). "admin" restricts the entire app.
 required_role = ""
+# FusionAuth: client authentication + PKCE required, application registration
+# required, Authorization Code + Refresh Token grants, refresh tokens enabled.
+# Disable self-service registration. Set its Logout URL to the frontend /#/login.
 
 [cloudflare]
 images_account_id = ""
+# Account-scoped token with Images Write permission; backend only.
 images_api_token = ""
-# Example: "https://imagedelivery.net/<account_hash>"
+# Delivery base INCLUDING the account hash, without an image ID or variant.
+# Example: https://imagedelivery.net/<account_hash>
 images_delivery_url = ""
+# An existing public variant for admin thumbnails.
 images_variant = "public"
+# Enable Flexible variants in Cloudflare Images for public /format=webp URLs.
 
 [website]
-# Base URL of the separate public website (used for blog links).
+# Base URL of the separate PUBLIC website, used to generate article links.
 public_url = "http://localhost:3000"
-# Exact public website origins allowed to read the API and submit contact forms.
-# No credentials/cookies are used for these public endpoints.
+# Exact browser origins (scheme + host + port, no path or trailing slash).
+# Add the public website's deployed HTTPS origin here. No cookies are needed
+# for /website/*; private /api/v1/* keeps its existing authentication checks.
 allowed_origins = ["http://localhost:3000"]
+# Public content supports ?lang=de or ?lang=en; only published content is served.
 
 [website.contact]
-# Contact form stays unavailable until SMTP is configured. TLS is always required.
-smtp_host = ""
+# Contact email stays unavailable until these settings and the password are set.
+smtp_host = "mail.technulgy.com"
 smtp_port = 587
-smtp_username = ""
+smtp_username = "noreply@technulgy.email"
 smtp_password = ""
-# "starttls" (typically port 587) or "tls" (typically port 465).
+# Verified TLS is required: "starttls" on 587, or "tls" on 465.
 tls_mode = "starttls"
-from = ""
-to = ""
+from = "noreply@technulgy.email"
+to = "elias.braun@technulgy.com"
+# Visitor email is used only as Reply-To. Submitted messages are not stored.

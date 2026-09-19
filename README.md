@@ -47,7 +47,47 @@ Open `http://localhost:2005`. Unauthenticated visitors are sent to `/#/login`; t
 
 For frontend hot reload, set `frontend_url = "http://localhost:5173/#/"`, start the backend, and run `npm run dev` from `frontend`. Open `http://localhost:5173`. Vite proxies `/api` and `/auth` to port 2005; the FusionAuth callback remains `http://localhost:2005/auth/callback`. Use `localhost` consistently, because cookies are shared between these localhost ports. The callback and frontend must share their hostname and scheme.
 
-For Docker, set the database host to `postgres` in `config.toml` and run `docker compose up --build`. TAS is exposed on port 2005.
+For Docker, follow the configuration and startup steps below. For a native Go process, change the example's database host from `postgres` to your PostgreSQL host (usually `localhost`).
+
+## Docker Compose
+
+Compose is a deployment template that pulls `ghcr.io/technulgy-lgnu/tas:latest`, built and published by the GitHub workflow. It has no local build configuration. The image contains the Go backend and built Vue frontend. All TAS configuration comes from an external TOML file mounted **read-only** at `/app/config.toml`.
+
+First publish an image by manually running **Verify and build TAS** in GitHub Actions. On the deployment host, you only need `docker-compose.yml`, `.env` (from `.env.example`) and your TOML config; no source checkout, Dockerfile, Go or Node installation is needed.
+
+1. Copy `config.example.toml` to a private location, for example `/srv/tas/config.toml`. Fill in the database password, FusionAuth credentials, Cloudflare settings, public website URL/origins and SMTP password. Keep `disable_fusionauth = false` in Docker.
+2. Copy `.env.example` to `.env` beside `docker-compose.yml`. Set `TAS_CONFIG_FILE=/srv/tas/config.toml` (or another absolute path). Set `POSTGRES_PASSWORD` to the same value as `[database].password` in the TOML. Set `TAS_IMAGE` to the published tag or full commit SHA you want to deploy; the example uses `ghcr.io/technulgy-lgnu/tas:latest`. The `.env` file controls Compose and PostgreSQL initialization; TAS reads its settings only from TOML.
+3. With the bundled database, keep TOML host `postgres`, port `5432`, user `technulgy_tas` and database `technulgy_tas_db`. The config file must already exist and be readable by the container's UID **10001**; the mount will not create a missing path. On Linux, an owner-readable file owned by UID 10001 or a read ACL for that UID works without making it world-readable.
+4. If the GHCR package is private, authenticate with `docker login ghcr.io` using credentials with package-read access. Pull and start:
+
+```sh
+docker compose config --quiet
+docker compose up -d --wait
+```
+
+TAS is available at `http://localhost:2005`. The default host binding is `127.0.0.1`; set `TAS_BIND_ADDRESS=0.0.0.0` in `.env` for LAN access, and adjust the browser-facing auth URLs and FusionAuth redirect registration accordingly. For HTTPS deployments, route a reverse proxy to port 2005 and use the external HTTPS URLs in `[auth]`. Forward `/website/*` as well as `/api/*`, `/auth/*` and the frontend. The separate public website's origin belongs in `[website].allowed_origins`, and its URL belongs in `[website].public_url`.
+
+Compose always pulls the selected TAS image from GHCR when starting. To deploy an update, publish it through GitHub Actions, update `TAS_IMAGE` if using a pinned tag/SHA, then run:
+
+```sh
+docker compose up -d --wait
+```
+
+After editing or replacing the TOML file, recreate TAS so it reads the current file and mount:
+
+```sh
+docker compose up -d --no-deps --force-recreate --wait tas
+```
+
+The container runs as a non-root user with a read-only filesystem. Its health check uses `/healthcheck`; PostgreSQL must be healthy before TAS starts. Startup runs the image-library and website-content database migrations. Uploaded image files stay in Cloudflare; the named PostgreSQL volume holds image metadata and website content. PostgreSQL is not published on a host port. Contact delivery needs outbound access to the configured SMTP host/port and stays disabled while the SMTP password is empty.
+
+The PostgreSQL 18 volume is mounted at `/var/lib/postgresql`, matching the [official image layout](https://hub.docker.com/_/postgres). If you already used the previous `/var/lib/postgresql/data` mount, back up the running database and inspect its actual data volume before switching: existing data is not automatically relocated into `18/docker`. Do not remove an existing data volume to resolve a layout mismatch. Changing `POSTGRES_PASSWORD` in `.env` does not change the password in an already initialized database; update that database user's password and the TOML together.
+
+## GitHub Actions
+
+The **Verify and build TAS** workflow runs on branch pushes, pull requests and manual dispatch. It lints/type-checks/builds the frontend, runs `go vet` and the backend race tests, and uses a disposable PostgreSQL 18 service for website integration tests. Tests use fake FusionAuth, Cloudflare and SMTP providers; no deployment secrets are needed. It also validates Compose/TOML and builds the amd64 Docker image.
+
+To publish, run the workflow manually and choose `image_tag` (default `latest`). After verification succeeds, it builds **linux/amd64** and **linux/arm64** and pushes `ghcr.io/<owner>/<repository>:<image_tag>` plus the full commit SHA tag using `GITHUB_TOKEN`. Automatic push/PR runs do not publish images. Manual publication does not deploy or restart TAS.
 
 ## Working without FusionAuth
 

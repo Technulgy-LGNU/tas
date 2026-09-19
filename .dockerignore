@@ -4,8 +4,9 @@
 .agents
 .codex
 
-config.toml
-.env
+**/*.toml
+!config.example.toml
+.env*
 logs
 *.log
 

@@ -1,15 +1,23 @@
 services:
   tas:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: tas:local
+    # Published by .github/workflows/docker-build.yml; no source checkout needed.
+    image: ${TAS_IMAGE:-ghcr.io/technulgy-lgnu/tas:latest}
+    pull_policy: always
     restart: unless-stopped
     ports:
-      - "2005:2005"
+      - "${TAS_BIND_ADDRESS:-127.0.0.1}:${TAS_PORT:-2005}:2005"
     volumes:
-      # When using the postgres service below, set [database].host = "postgres" in ./config.toml.
-      - ./config.toml:/app/config.toml:ro
+      # All TAS settings/secrets come from this external TOML file.
+      # Relative paths are relative to this Compose file; absolute paths also work.
+      - type: bind
+        source: ${TAS_CONFIG_FILE:-./config.toml}
+        target: /app/config.toml
+        read_only: true
+        bind:
+          create_host_path: false
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
     depends_on:
       postgres:
         condition: service_healthy
@@ -18,16 +26,19 @@ services:
     image: postgres:18-alpine
     restart: unless-stopped
     environment:
+      # Match [database] in the mounted TOML. These initialize a NEW database only.
       POSTGRES_USER: technulgy_tas
-      POSTGRES_PASSWORD: password
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env to match the TOML database password}
       POSTGRES_DB: technulgy_tas_db
     volumes:
-      - tas-postgres-data:/var/lib/postgresql/data
+      # PostgreSQL 18 stores its cluster below /var/lib/postgresql/18/docker.
+      - tas-postgres-data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U technulgy_tas -d technulgy_tas_db"]
-      interval: 10s
+      test: ["CMD-SHELL", 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 10s
 
 volumes:
   tas-postgres-data:
