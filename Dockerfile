@@ -1,40 +1,41 @@
-# syntax=docker/dockerfile:1.7
+# Build the Go application
+FROM golang:1.27.1-alpine AS builder-go
 
-FROM --platform=$BUILDPLATFORM node:26-bookworm AS frontend-build
-WORKDIR /src/frontend
-
-COPY frontend/package*.json ./
-RUN npm ci
-
-COPY frontend/ ./
-RUN npm run build
-
-FROM --platform=$BUILDPLATFORM golang:1.27.1-bookworm AS backend-build
-WORKDIR /src
-ARG TARGETOS
-ARG TARGETARCH
+WORKDIR /app
 
 COPY go.mod go.sum ./
+
 RUN go mod download
 
 COPY backend/ ./backend/
-RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w" -o /out/tas-server ./backend
 
-FROM debian:bookworm-slim AS runtime
-RUN apt-get update \
-	&& apt-get install -y --no-install-recommends ca-certificates curl \
-	&& rm -rf /var/lib/apt/lists/* \
-	&& useradd --system --uid 10001 --home-dir /app --shell /usr/sbin/nologin tas
+RUN go build ./backend/main.go
+
+# Build the Node.js application
+FROM node:26.9-alpine AS builder-node
 
 WORKDIR /app
-COPY --from=backend-build /out/tas-server /app/tas-server
-COPY --from=frontend-build /src/frontend/dist /app/frontend/dist
-COPY config.example.toml /app/config.example.toml
 
-USER tas
+COPY frontend/ ./
+
+RUN npm install
+
+RUN npm run build
+
+# Final image
+FROM alpine:latest
+
+RUN apk --no-cache add ca-certificates wget
+
+WORKDIR /app
+
+COPY --from=builder-go /app/main .
+
+COPY --from=builder-node /app/dist ./frontend/dist
+
 EXPOSE 2005
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
   CMD curl --fail --silent --show-error --max-time 4 http://127.0.0.1:2005/healthcheck || exit 1
 
-ENTRYPOINT ["/app/tas-server"]
+CMD ["./main"]
