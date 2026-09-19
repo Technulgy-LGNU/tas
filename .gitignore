@@ -1,5 +1,5 @@
 # Cache Data
-config.yaml
+config.toml
 .env
 
 # Logs
