@@ -1,8 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"log/slog"
+	"os"
+	"runtime"
 	"tas/backend/config"
 	"tas/backend/database"
 	"tas/backend/observability"
@@ -10,6 +13,11 @@ import (
 )
 
 func main() {
+	// Used by the container build to check the executable before publication.
+	if len(os.Args) == 2 && os.Args[1] == "--build-info" {
+		fmt.Printf("%s/%s\n", runtime.GOOS, runtime.GOARCH)
+		return
+	}
 	var cfg = config.GetConfig()
 	if err := observability.Configure(cfg.Logging.Level); err != nil {
 		log.Fatal(err)

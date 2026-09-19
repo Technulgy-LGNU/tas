@@ -89,6 +89,18 @@ The **Verify and build TAS** workflow runs on branch pushes, pull requests and m
 
 To publish, run the workflow manually and choose `image_tag` (default `latest`). After verification succeeds, it builds **linux/amd64** and **linux/arm64** and pushes `ghcr.io/<owner>/<repository>:<image_tag>` plus the full commit SHA tag using `GITHUB_TOKEN`. Automatic push/PR runs do not publish images. Manual publication does not deploy or restart TAS.
 
+The Dockerfile cross-compiles a static Go executable for each target architecture, then executes `/app/tas-server --build-info` inside that target image and verifies its reported platform before publication. The frontend is built natively with `npm ci`. Docker selects the matching image from the published multi-platform tag; Compose does not force a platform.
+
+An `exec format error` occurs before TAS reads its configuration or contacts FusionAuth. Check the deployment host with `uname -m` (`x86_64` maps to `linux/amd64`, `aarch64` to `linux/arm64`) and inspect the actual container/image:
+
+```sh
+docker compose images tas
+docker inspect "$(docker compose ps -aq tas)" --format '{{.Config.Image}} {{.Image}} {{json .Config.Entrypoint}} {{json .Config.Cmd}}'
+docker image inspect "$(docker compose images -q tas)" --format '{{.Os}}/{{.Architecture}}'
+```
+
+Remove unintended `platform`, `entrypoint` or `command` overrides from a customized deployment. After publishing a corrected image, set `TAS_IMAGE` to its full commit SHA tag and run `docker compose up -d --no-deps --force-recreate --wait tas`. A container still reporting an old executable path is using an older image or an overridden entrypoint. The supported deployment targets are 64-bit amd64 and arm64.
+
 ## Login and tunnel diagnostics
 
 For the deployed domains, set these values in the mounted TOML (keep the existing client ID, secret and tenant ID):

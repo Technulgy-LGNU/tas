@@ -131,11 +131,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build Docker image
+      # The Dockerfile runs --build-info inside every target image and verifies
+      # its architecture. A failed execution/mismatch stops publication.
+      - name: Build and verify target executables
         uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
+          pull: true
           platforms: ${{ github.event_name == 'workflow_dispatch' && 'linux/amd64,linux/arm64' || 'linux/amd64' }}
           push: ${{ github.event_name == 'workflow_dispatch' }}
           tags: |
