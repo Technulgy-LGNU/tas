@@ -28,3 +28,21 @@ images_api_token = ""
 # Example: "https://imagedelivery.net/<account_hash>"
 images_delivery_url = ""
 images_variant = "public"
+
+[website]
+# Base URL of the separate public website (used for blog links).
+public_url = "http://localhost:3000"
+# Exact public website origins allowed to read the API and submit contact forms.
+# No credentials/cookies are used for these public endpoints.
+allowed_origins = ["http://localhost:3000"]
+
+[website.contact]
+# Contact form stays unavailable until SMTP is configured. TLS is always required.
+smtp_host = ""
+smtp_port = 587
+smtp_username = ""
+smtp_password = ""
+# "starttls" (typically port 587) or "tls" (typically port 465).
+tls_mode = "starttls"
+from = ""
+to = ""

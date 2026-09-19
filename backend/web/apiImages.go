@@ -46,9 +46,25 @@ func RequireRoles(roles ...string) fiber.Handler {
 
 func (a *API) registerImages(v1 fiber.Router) {
 	v1.Get("/images", a.listImages)
+	v1.Get("/images/:id", a.getImage)
 	v1.Post("/images", RequireRoles("editor", "admin"), a.uploadImage)
 	v1.Patch("/images/:id", RequireRoles("editor", "admin"), a.updateImage)
 	v1.Delete("/images/:id", RequireRoles("admin"), a.deleteImage)
+}
+
+func (a *API) getImage(c fiber.Ctx) error {
+	if !a.imagesConfigured(c) {
+		return nil
+	}
+	id, err := imageID(c)
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid image ID."})
+	}
+	image, err := a.Images.Get(c.Context(), id)
+	if err != nil {
+		return imageDBError(c, err)
+	}
+	return c.JSON(fiber.Map{"image": a.imageResponse(image)})
 }
 
 type imageResponse struct {
@@ -193,6 +209,30 @@ func (a *API) updateImage(c fiber.Ctx) error {
 }
 
 func (a *API) deleteImage(c fiber.Ctx) error {
+	if a.DB != nil {
+		err := websiteWrite(a.DB.WithContext(c.Context()), func(tx *gorm.DB) error {
+			id, err := imageID(c)
+			if err != nil {
+				return err
+			}
+			var count int64
+			if err := tx.Model(&database.WebsiteReference{}).Where("target_id = ? AND kind = ?", id, "image").Count(&count).Error; err != nil {
+				return err
+			}
+			if count > 0 {
+				return fiber.NewError(409, "This image is used by website content. Remove it from that content before deleting it.")
+			}
+			return a.deleteUnreferencedImage(c)
+		})
+		if err != nil {
+			return websiteError(c, err)
+		}
+		return nil
+	}
+	return a.deleteUnreferencedImage(c)
+}
+
+func (a *API) deleteUnreferencedImage(c fiber.Ctx) error {
 	if !a.imagesConfigured(c) {
 		return nil
 	}

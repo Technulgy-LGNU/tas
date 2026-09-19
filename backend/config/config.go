@@ -3,11 +3,17 @@ package config
 import (
 	"log"
 	"os"
+	"tas/backend/contact"
 
 	"github.com/BurntSushi/toml"
 )
 
 type Config struct {
+	Website struct {
+		AllowedOrigins []string       `toml:"allowed_origins"`
+		PublicURL      string         `toml:"public_url"`
+		Contact        contact.Config `toml:"contact"`
+	} `toml:"website"`
 	Database struct {
 		Host     string `toml:"host"`
 		Port     int    `toml:"port"`

@@ -7,6 +7,7 @@ import (
 	"log"
 	"tas/backend/cloudflare"
 	"tas/backend/config"
+	"tas/backend/contact"
 	"tas/backend/database"
 )
 
@@ -16,6 +17,7 @@ type API struct {
 	Auth          *Auth
 	Images        database.ImageStore
 	ImageProvider imageProvider
+	SendContact   func(contact.Config, contact.Message) error
 }
 
 func NewApp(cfg *config.Config, db *gorm.DB) (*fiber.App, error) {
@@ -23,7 +25,7 @@ func NewApp(cfg *config.Config, db *gorm.DB) (*fiber.App, error) {
 	if err != nil {
 		return nil, err
 	}
-	a := &API{CFG: cfg, DB: db, Auth: auth, ImageProvider: cloudflare.NewImages(cfg.Cloudflare.ImagesAccountId, cfg.Cloudflare.ImagesAPIToken)}
+	a := &API{CFG: cfg, DB: db, Auth: auth, ImageProvider: cloudflare.NewImages(cfg.Cloudflare.ImagesAccountId, cfg.Cloudflare.ImagesAPIToken), SendContact: contact.Send}
 	if db != nil {
 		a.Images = database.PostgresImages{DB: db}
 	}
@@ -47,6 +49,7 @@ func NewApp(cfg *config.Config, db *gorm.DB) (*fiber.App, error) {
 	v1.Get("/auth/me", auth.Me)
 	// Register all future private API routes here, after RequireAuth.
 	a.registerImages(v1)
+	a.registerWebsite(app, v1)
 	app.Use("/api", func(c fiber.Ctx) error { return c.Status(404).JSON(fiber.Map{"error": "not_found"}) })
 	app.Use("/auth", func(c fiber.Ctx) error { return c.SendStatus(404) })
 	app.Use("/", static.New("frontend/dist"))

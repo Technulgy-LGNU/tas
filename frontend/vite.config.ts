@@ -14,6 +14,7 @@ export default defineConfig({
     proxy: {
       '/api': 'http://localhost:2005',
       '/auth': 'http://localhost:2005',
+      '/website': 'http://localhost:2005',
     },
   },
   plugins: [

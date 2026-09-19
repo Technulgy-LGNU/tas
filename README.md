@@ -121,3 +121,11 @@ API endpoints (all require an authenticated session):
 Mutation requests require the existing CSRF header; use the frontend's `apiFetch` helper. The shared `RequireRoles("editor", "admin")` middleware can also protect future role-specific endpoints.
 
 Cloudflare references: [upload API and token permissions](https://developers.cloudflare.com/api/resources/images/subresources/v1/methods/create/), [deleting images](https://developers.cloudflare.com/images/storage/manage-images/delete-images/).
+
+## Website management
+
+Select **Website** in the sidebar for Home, Teams, Participation History, Sponsors, Publications, Blog and SSL. Editors/admins can edit and publish; only admins can delete. Content is bilingual, and drafts are private until published. The blog editor supports ordered text, heading, image, gallery and YouTube blocks, with a preview and scheduled publication dates.
+
+Public resources start at `/website/home?lang=en`; use `lang=de` for German. The public website repository can consume them without FusionAuth. Configure its base URL and allowed origins under `[website]`. Contact submissions are emailed using `[website.contact]`; add the SMTP password and restart to enable sending. SSL stays in the website repository.
+
+See [the website API guide](docs/website-api.md) for all endpoints, response shapes, block rendering, SMTP configuration, permissions and integration testing.

@@ -55,6 +55,15 @@ async function signOut() {
         @click="emit('navigate')"
         ><AppIcon name="image" /><span :class="{ 'sr-only': collapsed }">Images</span></RouterLink
       >
+      <RouterLink
+        to="/website"
+        class="nav-link"
+        :title="collapsed ? 'Website' : undefined"
+        @click="emit('navigate')"
+        ><AppIcon name="website" /><span :class="{ 'sr-only': collapsed }"
+          >Website</span
+        ></RouterLink
+      >
     </nav>
     <div class="sidebar-footer">
       <p v-if="error" class="error" role="alert">{{ error }}</p>
@@ -65,7 +74,9 @@ async function signOut() {
           ><small>{{ currentUser?.roles?.join(', ') || 'Team member' }}</small>
         </div>
       </div>
-      <p v-if="currentUser?.localDevelopment && !collapsed" class="hint">Local development · admin</p>
+      <p v-if="currentUser?.localDevelopment && !collapsed" class="hint">
+        Local development · admin
+      </p>
       <button
         v-if="!currentUser?.localDevelopment"
         class="nav-link sign-out"
