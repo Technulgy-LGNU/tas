@@ -7,20 +7,6 @@ pass = "password"
 database = "technulgy_tas_db"
 timezone = "Europe/Berlin"
 
-[server]
-# The interface the server will listen on
-host = "0.0.0.0"
-# The port the server will listen on
-port = 8000
-
-[cors]
-origins = [
-  "http://localhost:5173",
-  "http://localhost:8000",
-  "https://tas.technulgy.com",
-  "https://technulgy.com"
-]
-
 [auth]
 # FusionAuth issuer, for example "https://auth.example.org".
 issuer = ""
