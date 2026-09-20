@@ -29,10 +29,11 @@ type Config struct {
 	Auth AuthConfig `toml:"auth"`
 
 	Cloudflare struct {
-		ImagesAccountId   string `toml:"images_account_id"`
-		ImagesAPIToken    string `toml:"images_api_token"`
-		ImagesDeliveryURL string `toml:"images_delivery_url"`
-		ImagesVariant     string `toml:"images_variant"`
+		ImagesAccountId       string `toml:"images_account_id"`
+		ImagesAPIToken        string `toml:"images_api_token"`
+		ImagesDeliveryURL     string `toml:"images_delivery_url"`
+		ImagesVariant         string `toml:"images_variant"`
+		ImagesTransformOrigin string `toml:"images_transform_origin"`
 	} `toml:"cloudflare"`
 }
 

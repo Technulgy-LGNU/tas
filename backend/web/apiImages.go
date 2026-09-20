@@ -18,6 +18,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"tas/backend/cloudflare"
 	"tas/backend/database"
 )
 
@@ -75,7 +76,8 @@ type imageResponse struct {
 func (a *API) imageResponse(image database.Image) imageResponse {
 	link := ""
 	if image.Status == "ready" {
-		link = strings.TrimRight(a.CFG.Cloudflare.ImagesDeliveryURL, "/") + "/" + url.PathEscape(image.CloudflareID) + "/" + url.PathEscape(a.CFG.Cloudflare.ImagesVariant)
+		cfg := a.CFG.Cloudflare
+		link = cloudflare.DeliveryURL(cfg.ImagesDeliveryURL, image.CloudflareID, cfg.ImagesVariant, cfg.ImagesTransformOrigin, 640)
 	}
 	return imageResponse{Image: image, URL: link}
 }

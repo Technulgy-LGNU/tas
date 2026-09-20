@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -16,6 +15,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
 	"gorm.io/gorm"
+	"tas/backend/cloudflare"
 	"tas/backend/contact"
 	"tas/backend/database"
 )
@@ -239,7 +239,8 @@ func (a *API) websiteURL(path, lang string) string {
 	return strings.TrimRight(a.CFG.Website.PublicURL, "/") + path + "?lang=" + lang
 }
 func (a *API) websiteImage(image database.Image, ref database.WebsiteImage, lang string) fiber.Map {
-	return fiber.Map{"id": image.ID, "url": strings.TrimRight(a.CFG.Cloudflare.ImagesDeliveryURL, "/") + "/" + url.PathEscape(image.CloudflareID) + "/format=webp", "alt": ref.Alt.Get(lang)}
+	cfg := a.CFG.Cloudflare
+	return fiber.Map{"id": image.ID, "url": cloudflare.DeliveryURL(cfg.ImagesDeliveryURL, image.CloudflareID, cfg.ImagesVariant, cfg.ImagesTransformOrigin, 1920), "alt": ref.Alt.Get(lang)}
 }
 
 type websiteProjection struct {

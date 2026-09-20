@@ -23,7 +23,38 @@ to = "elias.braun@technulgy.com"
 
 The SMTP password is intentionally left empty in the local config. The contact endpoint returns 503 until SMTP is configured. SMTP requires verified TLS: `starttls` normally uses port 587; `tls` normally uses port 465. Confirm the port with your mail provider if 587 is not available. Restart TAS after editing configuration.
 
-Image URLs use Cloudflare flexible variants with `/format=webp`. Enable Flexible variants under Cloudflare Images → Delivery if using a different Cloudflare account. This has been checked on the configured account. Browsers advertising WebP support receive WebP; non-browser fetches should send `Accept: image/webp` when downloading image data. Original library images and their IDs stay unchanged. See [Cloudflare flexible variants](https://developers.cloudflare.com/images/optimization/hosted-images/enable-flexible-variants/) and [format handling](https://developers.cloudflare.com/images/optimization/hosted-images/serve-uploaded-images/).
+Image URLs request Cloudflare transformations with `width=1920,fit=scale-down,quality=80,format=webp`. Admin-library previews use width 640. Images keep their aspect ratio and are never enlarged. All public image placements (home, team/event galleries, sponsors, publications, blog covers and article blocks) use the same URL builder. Original uploads and IDs stay unchanged; the image-library `contentType` and `size` fields still describe the uploaded original, not the transformed response.
+
+To use the explicit Cloudflare transformation endpoint, add this under `[cloudflare]` in your mounted TOML:
+
+```toml
+images_transform_origin = "https://tas.technulgy.com"
+```
+
+First enable Image Transformations for the Cloudflare zone serving that proxied HTTPS hostname, and allow the configured image delivery host (`imagedelivery.net` by default) as a source. Cloudflare must handle `/cdn-cgi/image/*` at its edge without an Access challenge or Worker intercepting it. `images_transform_origin` is an origin only, without `/cdn-cgi/image`, credentials, a query or fragment. Restart/recreate TAS after changing it.
+
+With this configured, URLs have this structure:
+
+```text
+https://tas.technulgy.com/cdn-cgi/image/width=1920,fit=scale-down,quality=80,format=webp/https://imagedelivery.net/<hash>/<image-id>/public
+```
+
+The existing `images_variant` setting selects the public source variant (`public` by default). Ensure that source variant preserves the desired framing and allows at least 1920px width: transformations cannot restore detail already removed by a smaller source variant.
+
+If the setting is empty, TAS uses hosted Cloudflare Images flexible variants with the same size/quality parameters. Enable Flexible variants under Hosted Images → Delivery. **Hosted Images still negotiates the output format using `Accept`; `/format=webp` alone does not guarantee a WebP response.** For example, `Accept: */*` can return JPEG while `Accept: image/webp` returns WebP. The explicit transformation path requests format conversion independently of that hosted-delivery negotiation.
+
+Verify a generated URL with a real GET, checking `Content-Type` and the file bytes rather than its suffix or original-upload metadata:
+
+```sh
+curl --fail -A 'Mozilla/5.0' -H 'Accept: */*' -D /tmp/tas-image-headers.txt \
+  'PASTE_GENERATED_IMAGE_URL_HERE' -o /tmp/tas-image
+cat /tmp/tas-image-headers.txt
+file /tmp/tas-image
+```
+
+For the explicit transformation URL, expect `Content-Type: image/webp` and a WebP file. A 404 without a `Cf-Resized` header means the requested edge transformation path is not being handled; check zone/hostname enablement before switching TAS to it. A transformation error should be investigated via `Cf-Resized` and the response body. There is no automatic fallback from a failing configured endpoint to unoptimized originals.
+
+See [Cloudflare transformation parameters](https://developers.cloudflare.com/images/optimization/features/), [source origins](https://developers.cloudflare.com/images/optimization/transformations/sources/), [flexible variants](https://developers.cloudflare.com/images/optimization/hosted-images/enable-flexible-variants/) and [transformation troubleshooting](https://developers.cloudflare.com/images/reference/troubleshooting/).
 
 ## Language and publishing
 
@@ -61,7 +92,7 @@ Collection responses are `{ "language": "en", "items": [], "page": 1, "pageSize"
 {
   "language": "en",
   "images": [
-    { "id": "<TAS-image-id>", "url": "https://imagedelivery.net/<hash>/tas-<uuid>/format=webp", "alt": "Our team" }
+    { "id": "<TAS-image-id>", "url": "https://imagedelivery.net/<hash>/tas-<uuid>/width=1920,fit=scale-down,quality=80,format=webp", "alt": "Our team" }
   ],
   "aboutUs": "We build robots and share what we learn.",
   "blogs": [
@@ -72,7 +103,7 @@ Collection responses are `{ "language": "en", "items": [], "page": 1, "pageSize"
       "description": "A short summary.",
       "url": "https://www.your-website.example/blog/german-open-2026?lang=en",
       "publishedAt": "2026-09-19T12:00:00Z",
-      "image": { "id": "<image-id>", "url": "https://imagedelivery.net/<hash>/tas-<uuid>/format=webp", "alt": "The team at the competition" },
+      "image": { "id": "<image-id>", "url": "https://imagedelivery.net/<hash>/tas-<uuid>/width=1920,fit=scale-down,quality=80,format=webp", "alt": "The team at the competition" },
       "images": []
     }
   ],

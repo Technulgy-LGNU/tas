@@ -186,8 +186,8 @@ func TestWebsitePersistenceAndPublicProjection(t *testing.T) {
 			t.Fatalf("home language: %d %v", status, home)
 		}
 		images := home["images"].([]any)
-		if !strings.HasSuffix(images[0].(map[string]any)["url"].(string), "/format=webp") {
-			t.Fatal("WebP URL missing")
+		if !strings.HasSuffix(images[0].(map[string]any)["url"].(string), "/width=1920,fit=scale-down,quality=80,format=webp") {
+			t.Fatal("website image transformation missing")
 		}
 		blogs := home["blogs"].([]any)
 		if len(blogs) != 3 || blogs[0].(map[string]any)["slug"] != "latest" {

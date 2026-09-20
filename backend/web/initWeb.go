@@ -22,6 +22,9 @@ type API struct {
 }
 
 func NewApp(cfg *config.Config, db *gorm.DB) (*fiber.App, error) {
+	if err := cloudflare.ValidateTransformOrigin(cfg.Cloudflare.ImagesTransformOrigin); err != nil {
+		return nil, err
+	}
 	auth, err := NewAuth(cfg.Auth)
 	if err != nil {
 		return nil, err
@@ -62,7 +65,7 @@ func NewApp(cfg *config.Config, db *gorm.DB) (*fiber.App, error) {
 func InitWeb(cfg *config.Config, db *gorm.DB) {
 	app, err := NewApp(cfg, db)
 	if err != nil {
-		log.Fatalf("Invalid authentication configuration: %v", err)
+		log.Fatalf("Invalid application configuration: %v", err)
 	}
 	if cfg.Auth.DisableFusionAuth {
 		log.Print("Local development mode: FusionAuth disabled; requests run as local admin. Listening on loopback only.")

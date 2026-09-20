@@ -203,7 +203,7 @@ func TestUploadPersistsMetadataAndRejectsInvalidFiles(t *testing.T) {
 	if stored.CloudflareID != "tas-"+stored.ID {
 		t.Fatalf("Cloudflare ID must be distinct from the database UUID: %q", stored.CloudflareID)
 	}
-	if res.StatusCode != 201 || stored.Name != "Website hero" || stored.AltText != "Accessible description" || stored.UploadedBy != "user" || stored.ContentType != "image/png" || stored.Size != int64(len(testPNG)) || stored.Status != "ready" || !strings.HasSuffix(result.Image.URL, "/"+stored.CloudflareID+"/public") {
+	if res.StatusCode != 201 || stored.Name != "Website hero" || stored.AltText != "Accessible description" || stored.UploadedBy != "user" || stored.ContentType != "image/png" || stored.Size != int64(len(testPNG)) || stored.Status != "ready" || !strings.HasSuffix(result.Image.URL, "/"+stored.CloudflareID+"/width=640,fit=scale-down,quality=80,format=webp") {
 		t.Fatalf("wrong image record: %+v", result)
 	}
 	for _, tc := range []struct {
@@ -335,5 +335,29 @@ func TestImageRoutesUseAuthenticationAndCSRF(t *testing.T) {
 				t.Fatal("missing CSRF header accepted")
 			}
 		}
+	}
+}
+
+func TestTransformedImagesInLibraryAndWebsite(t *testing.T) {
+	cfg := &config.Config{}
+	cfg.Cloudflare.ImagesDeliveryURL = "https://imagedelivery.net/hash"
+	cfg.Cloudflare.ImagesVariant = "public"
+	cfg.Cloudflare.ImagesTransformOrigin = "https://images.example.org"
+	a := &API{CFG: cfg}
+	im := database.Image{ID: testImageID, CloudflareID: "tas-photo", Status: "ready", ContentType: "image/jpeg"}
+	library := a.imageResponse(im)
+	if library.URL != "https://images.example.org/cdn-cgi/image/width=640,fit=scale-down,quality=80,format=webp/https://imagedelivery.net/hash/tas-photo/public" {
+		t.Fatal(library.URL)
+	}
+	if library.ContentType != "image/jpeg" {
+		t.Fatal("source metadata was rewritten")
+	}
+	website := a.websiteImage(im, database.WebsiteImage{ID: testImageID, Alt: database.LocalizedText{DE: "Teamfoto", EN: "Team photo"}}, "de")
+	if website["url"] != "https://images.example.org/cdn-cgi/image/width=1920,fit=scale-down,quality=80,format=webp/https://imagedelivery.net/hash/tas-photo/public" || website["alt"] != "Teamfoto" {
+		t.Fatal(website)
+	}
+	im.Status = "uploading"
+	if a.imageResponse(im).URL != "" {
+		t.Fatal("incomplete upload exposed a delivery URL")
 	}
 }
