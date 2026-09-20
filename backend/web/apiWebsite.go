@@ -240,7 +240,7 @@ func (a *API) websiteURL(path, lang string) string {
 }
 func (a *API) websiteImage(image database.Image, ref database.WebsiteImage, lang string) fiber.Map {
 	cfg := a.CFG.Cloudflare
-	return fiber.Map{"id": image.ID, "url": cloudflare.DeliveryURL(cfg.ImagesDeliveryURL, image.CloudflareID, cfg.ImagesVariant, cfg.ImagesTransformOrigin, 1920), "alt": ref.Alt.Get(lang)}
+	return fiber.Map{"id": image.ID, "url": cloudflare.DeliveryURL(cfg.ImagesDeliveryURL, image.CloudflareID, cfg.ImagesTransformOrigin, 1920), "alt": ref.Alt.Get(lang)}
 }
 
 type websiteProjection struct {

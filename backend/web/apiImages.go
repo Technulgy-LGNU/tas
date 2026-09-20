@@ -77,7 +77,7 @@ func (a *API) imageResponse(image database.Image) imageResponse {
 	link := ""
 	if image.Status == "ready" {
 		cfg := a.CFG.Cloudflare
-		link = cloudflare.DeliveryURL(cfg.ImagesDeliveryURL, image.CloudflareID, cfg.ImagesVariant, cfg.ImagesTransformOrigin, 640)
+		link = cloudflare.DeliveryURL(cfg.ImagesDeliveryURL, image.CloudflareID, cfg.ImagesTransformOrigin, 640)
 	}
 	return imageResponse{Image: image, URL: link}
 }
@@ -85,7 +85,7 @@ func (a *API) imageResponse(image database.Image) imageResponse {
 func (a *API) imagesConfigured(c fiber.Ctx) bool {
 	cfg := a.CFG.Cloudflare
 	u, err := url.Parse(cfg.ImagesDeliveryURL)
-	if a.Images == nil || a.ImageProvider == nil || cfg.ImagesAccountId == "" || cfg.ImagesAPIToken == "" || cfg.ImagesVariant == "" || err != nil || u.Host == "" || (u.Scheme != "https" && u.Scheme != "http") || u.RawQuery != "" || u.Fragment != "" {
+	if a.Images == nil || a.ImageProvider == nil || cfg.ImagesAccountId == "" || cfg.ImagesAPIToken == "" || err != nil || u.Host == "" || (u.Scheme != "https" && u.Scheme != "http") || u.RawQuery != "" || u.Fragment != "" {
 		_ = c.Status(503).JSON(fiber.Map{"error": "The image library is not configured. Contact your administrator."})
 		return false
 	}

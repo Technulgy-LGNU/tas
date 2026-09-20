@@ -116,7 +116,6 @@ func imageApp(roles ...string) (*fiber.App, *memoryImages, *fakeImageProvider) {
 	cfg.Cloudflare.ImagesAccountId = "account"
 	cfg.Cloudflare.ImagesAPIToken = "secret"
 	cfg.Cloudflare.ImagesDeliveryURL = "https://imagedelivery.net/hash"
-	cfg.Cloudflare.ImagesVariant = "public"
 	a := &API{CFG: cfg, Images: store, ImageProvider: provider}
 	app := fiber.New(fiber.Config{BodyLimit: maxImageBytes + 1024*1024})
 	v1 := app.Group("/api/v1", func(c fiber.Ctx) error { c.Locals("user", User{ID: "user", Roles: roles}); return c.Next() })
@@ -341,19 +340,18 @@ func TestImageRoutesUseAuthenticationAndCSRF(t *testing.T) {
 func TestTransformedImagesInLibraryAndWebsite(t *testing.T) {
 	cfg := &config.Config{}
 	cfg.Cloudflare.ImagesDeliveryURL = "https://imagedelivery.net/hash"
-	cfg.Cloudflare.ImagesVariant = "public"
 	cfg.Cloudflare.ImagesTransformOrigin = "https://images.example.org"
 	a := &API{CFG: cfg}
 	im := database.Image{ID: testImageID, CloudflareID: "tas-photo", Status: "ready", ContentType: "image/jpeg"}
 	library := a.imageResponse(im)
-	if library.URL != "https://images.example.org/cdn-cgi/image/width=640,fit=scale-down,quality=80,format=webp/https://imagedelivery.net/hash/tas-photo/public" {
+	if library.URL != "https://images.example.org/cdn-cgi/imagedelivery/hash/tas-photo/width=640,fit=scale-down,quality=80,format=webp" {
 		t.Fatal(library.URL)
 	}
 	if library.ContentType != "image/jpeg" {
 		t.Fatal("source metadata was rewritten")
 	}
 	website := a.websiteImage(im, database.WebsiteImage{ID: testImageID, Alt: database.LocalizedText{DE: "Teamfoto", EN: "Team photo"}}, "de")
-	if website["url"] != "https://images.example.org/cdn-cgi/image/width=1920,fit=scale-down,quality=80,format=webp/https://imagedelivery.net/hash/tas-photo/public" || website["alt"] != "Teamfoto" {
+	if website["url"] != "https://images.example.org/cdn-cgi/imagedelivery/hash/tas-photo/width=1920,fit=scale-down,quality=80,format=webp" || website["alt"] != "Teamfoto" {
 		t.Fatal(website)
 	}
 	im.Status = "uploading"

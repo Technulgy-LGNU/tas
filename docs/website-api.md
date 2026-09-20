@@ -23,38 +23,42 @@ to = "elias.braun@technulgy.com"
 
 The SMTP password is intentionally left empty in the local config. The contact endpoint returns 503 until SMTP is configured. SMTP requires verified TLS: `starttls` normally uses port 587; `tls` normally uses port 465. Confirm the port with your mail provider if 587 is not available. Restart TAS after editing configuration.
 
-Image URLs request Cloudflare transformations with `width=1920,fit=scale-down,quality=80,format=webp`. Admin-library previews use width 640. Images keep their aspect ratio and are never enlarged. All public image placements (home, team/event galleries, sponsors, publications, blog covers and article blocks) use the same URL builder. Original uploads and IDs stay unchanged; the image-library `contentType` and `size` fields still describe the uploaded original, not the transformed response.
+Image URLs apply Cloudflare hosted Images flexible variants directly, using `width=1920,fit=scale-down,quality=80,format=webp`. Admin previews use width 640. Images keep their aspect ratio and are never enlarged. All public image placements use the same URL builder. Original uploads and IDs stay unchanged; library `contentType` and `size` describe the upload, not the delivered image.
 
-To use the explicit Cloudflare transformation endpoint, add this under `[cloudflare]` in your mounted TOML:
+Enable **Flexible variants** under Cloudflare **Hosted Images → Delivery**. With `images_transform_origin` empty, URLs use the configured delivery base:
+
+```text
+https://imagedelivery.net/<hash>/<image-id>/width=1920,fit=scale-down,quality=80,format=webp
+```
+
+To deliver through your Cloudflare-proxied domain in the same account, keep this setting under `[cloudflare]`:
 
 ```toml
 images_transform_origin = "https://tas.technulgy.com"
 ```
 
-First enable Image Transformations for the Cloudflare zone serving that proxied HTTPS hostname, and allow the configured image delivery host (`imagedelivery.net` by default) as a source. Cloudflare must handle `/cdn-cgi/image/*` at its edge without an Access challenge or Worker intercepting it. `images_transform_origin` is an origin only, without `/cdn-cgi/image`, credentials, a query or fragment. Restart/recreate TAS after changing it.
-
-With this configured, URLs have this structure:
+The setting's existing name is retained for compatibility. It now selects the native custom-domain hosted Images endpoint:
 
 ```text
-https://tas.technulgy.com/cdn-cgi/image/width=1920,fit=scale-down,quality=80,format=webp/https://imagedelivery.net/<hash>/<image-id>/public
+https://tas.technulgy.com/cdn-cgi/imagedelivery/<hash>/<image-id>/width=1920,fit=scale-down,quality=80,format=webp
 ```
 
-The existing `images_variant` setting selects the public source variant (`public` by default). Ensure that source variant preserves the desired framing and allows at least 1920px width: transformations cannot restore detail already removed by a smaller source variant.
+This fixes error 9524 from the previous nested `/cdn-cgi/image/.../https://imagedelivery.net/.../public` implementation. Zone Image Transformations and its external-source allowlist are not needed for this hosted-image path. Existing `images_transform_origin` values continue to work after deploying the corrected TAS image. The legacy `images_variant` setting is accepted but no longer used; options are applied directly to the hosted original.
 
-If the setting is empty, TAS uses hosted Cloudflare Images flexible variants with the same size/quality parameters. Enable Flexible variants under Hosted Images → Delivery. **Hosted Images still negotiates the output format using `Accept`; `/format=webp` alone does not guarantee a WebP response.** For example, `Accept: */*` can return JPEG while `Accept: image/webp` returns WebP. The explicit transformation path requests format conversion independently of that hosted-delivery negotiation.
+Hosted Images negotiates the response format using `Accept` even when the URL contains `format=webp`. Modern browsers advertise supported image formats; server-side consumers should send `Accept: image/webp` when they need WebP. A generic `Accept: */*` request can receive resized JPEG. Resizing and compression still apply in either case. TAS does not claim a guaranteed WebP response independent of the client headers.
 
-Verify a generated URL with a real GET, checking `Content-Type` and the file bytes rather than its suffix or original-upload metadata:
+Verify with a GET and inspect the actual file and response headers:
 
 ```sh
-curl --fail -A 'Mozilla/5.0' -H 'Accept: */*' -D /tmp/tas-image-headers.txt \
+curl --fail -A 'Mozilla/5.0' -H 'Accept: image/webp' -D /tmp/tas-image-headers.txt \
   'PASTE_GENERATED_IMAGE_URL_HERE' -o /tmp/tas-image
 cat /tmp/tas-image-headers.txt
 file /tmp/tas-image
 ```
 
-For the explicit transformation URL, expect `Content-Type: image/webp` and a WebP file. A 404 without a `Cf-Resized` header means the requested edge transformation path is not being handled; check zone/hostname enablement before switching TAS to it. A transformation error should be investigated via `Cf-Resized` and the response body. There is no automatic fallback from a failing configured endpoint to unoptimized originals.
+For the supplied test photo, the corrected 1920px custom-domain URL was verified to return HTTP 200, `image/webp`, and valid WebP file bytes (108,486 bytes). If old nested URLs still appear, deploy the corrected image and refresh/rebuild the public website's fetched JSON. For failures on the native path, check Flexible variants, the account hash, image status and custom-domain account ownership.
 
-See [Cloudflare transformation parameters](https://developers.cloudflare.com/images/optimization/features/), [source origins](https://developers.cloudflare.com/images/optimization/transformations/sources/), [flexible variants](https://developers.cloudflare.com/images/optimization/hosted-images/enable-flexible-variants/) and [transformation troubleshooting](https://developers.cloudflare.com/images/reference/troubleshooting/).
+References: [custom-domain delivery](https://developers.cloudflare.com/images/optimization/hosted-images/serve-from-custom-domains/), [flexible variants](https://developers.cloudflare.com/images/optimization/hosted-images/enable-flexible-variants/), and [format negotiation](https://developers.cloudflare.com/images/optimization/hosted-images/serve-uploaded-images/).
 
 ## Language and publishing
 

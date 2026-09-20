@@ -50,16 +50,16 @@ images_api_token = ""
 # Delivery base INCLUDING the account hash, without an image ID or variant.
 # Example: https://imagedelivery.net/<account_hash>
 images_delivery_url = ""
-# Existing public source variant used when images_transform_origin is configured.
-# Keep its dimensions large enough for website images (at least 1920px wide).
-images_variant = "public"
-# Optional Cloudflare-proxied HTTPS origin, without a path (e.g. https://tas.example.com).
-# Enable Image Transformations for that zone and allow imagedelivery.net as a
-# source before setting this. TAS uses /cdn-cgi/image/... with explicit WebP.
+# Enable Flexible variants under Cloudflare Hosted Images -> Delivery.
+# Optional custom delivery origin, on a Cloudflare-proxied domain in the same
+# account. Example: https://tas.technulgy.com (no path, query or fragment).
+# Despite the legacy name, this uses /cdn-cgi/imagedelivery/<hash>/<id>/<options>.
+# Empty uses images_delivery_url directly. Zone Image Transformations and its
+# external-source allowlist are not required for this hosted Images endpoint.
 images_transform_origin = ""
-# If empty, use hosted Images with Flexible variants enabled. This resizes and
-# compresses, but output format still depends on the caller's Accept header.
 # Website images: max width 1920; admin previews: 640; quality 80, no upscaling.
+# Hosted Images negotiates format with Accept; send image/webp for WebP downloads.
+# The legacy images_variant key is accepted but no longer used.
 
 [website]
 # Base URL of the separate PUBLIC website, used to generate article links.
