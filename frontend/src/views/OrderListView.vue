@@ -9,6 +9,8 @@ import {
   manageOrders,
   editOrders,
   money,
+  unitPrice,
+  totalCents,
   ordersRequest,
   jsonOptions,
   partFields,
@@ -47,16 +49,10 @@ const requests = computed(
   () =>
     list.value?.content.requests.filter((r) => showHistory.value || r.status === 'pending') ?? [],
 )
-const total = computed(
-  () => list.value?.content.parts.reduce((sum, p) => sum + p.amount * p.unitPriceCents, 0) ?? 0,
-)
+const total = computed(() => totalCents(list.value?.content.parts ?? []))
 const ordered = computed(() => list.value?.content.parts.filter((p) => p.orderedAt).length ?? 0)
-const remaining = computed(
-  () =>
-    list.value?.content.parts.reduce(
-      (sum, p) => sum + (p.orderedAt ? 0 : p.amount * p.unitPriceCents),
-      0,
-    ) ?? 0,
+const remaining = computed(() =>
+  totalCents(list.value?.content.parts.filter((p) => !p.orderedAt) ?? []),
 )
 const title = computed(
   () =>
@@ -87,11 +83,14 @@ const groups = computed(() => {
     if (!groups.has(key)) groups.set(key, { key, name, parts: [], total: 0 })
     const group = groups.get(key)!
     group.parts.push(p)
-    group.total += p.amount * p.unitPriceCents
   }
   return [...groups.values()]
     .sort((a, b) => a.name.localeCompare(b.name))
-    .map((g) => ({ ...g, parts: g.parts.sort((a, b) => a.name.localeCompare(b.name)) }))
+    .map((g) => ({
+      ...g,
+      total: totalCents(g.parts),
+      parts: g.parts.sort((a, b) => a.name.localeCompare(b.name)),
+    }))
 })
 let generation = 0
 async function load() {
@@ -407,9 +406,9 @@ watch(
                     ><small v-if="p.requestId">From an approved request</small>
                   </td>
                   <td>{{ p.amount }}</td>
-                  <td>{{ money(p.unitPriceCents) }}</td>
+                  <td>{{ unitPrice(p.unitPriceCents) }}</td>
                   <td>
-                    <strong>{{ money(p.amount * p.unitPriceCents) }}</strong>
+                    <strong>{{ money(totalCents([p])) }}</strong>
                   </td>
                   <td>
                     {{
@@ -473,10 +472,10 @@ watch(
               <span class="badge">{{ r.status }}</span>
               <h3>{{ r.name }}</h3>
             </div>
-            <strong>{{ money(r.amount * r.unitPriceCents) }}</strong>
+            <strong>{{ money(totalCents([r])) }}</strong>
           </div>
           <p>
-            {{ r.amount }} × {{ money(r.unitPriceCents) }} · {{ r.shop }} ·
+            {{ r.amount }} × {{ unitPrice(r.unitPriceCents) }} · {{ r.shop }} ·
             {{ categoryName(r.categoryId) }}
           </p>
           <a v-if="r.link" :href="r.link" target="_blank" rel="noopener noreferrer"

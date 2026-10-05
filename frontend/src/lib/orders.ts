@@ -104,16 +104,7 @@ export function partFields(p: PartFields | StandardPart): PartFields {
     categoryId: 'categoryId' in p ? p.categoryId : '',
   }
 }
-export const money = (cents: number) =>
-  new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(cents / 100)
-export function priceCents(value: string): number {
-  if (!/^\d{1,7}(?:[.,]\d{1,2})?$/.test(value))
-    throw new Error('Enter a unit price with at most two decimal places.')
-  const [whole = '0', fraction = ''] = value.replace(',', '.').split('.')
-  const cents = Number(whole) * 100 + Number(fraction.padEnd(2, '0'))
-  if (cents > 100000000) throw new Error('Unit price cannot exceed 1,000,000 EUR.')
-  return cents
-}
+export { money, unitPrice, priceInput, priceCents, totalCents } from './orderPrices'
 export async function ordersRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
   const response = await apiFetch(`/api/v1/orders${path}`, options)
   if (!response.ok) {

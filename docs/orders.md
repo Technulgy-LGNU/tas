@@ -23,7 +23,7 @@ Permissions are enforced by the API as well as the interface. Users without one 
 ## Workflow
 
 1. An order admin creates a named list and optional categories for teams, projects or shops. Each part can have one category, or remain uncategorized.
-2. Editors and order admins add parts directly. Teams submit requests. Each entry has a name, amount, unit price, shop, optional product link and optional category. The standard-parts picker copies saved values into either form for adjustment.
+2. Editors and order admins add parts directly. Teams submit requests. Each entry has a name, amount, unit price (up to five decimal places, using a dot or comma), shop, optional product link and optional category. The standard-parts picker copies saved values into either form for adjustment.
 3. Editors/order admins review requests. Acceptance can adjust the submitted details and add a review note; it atomically creates a list part linked to the request. Rejected and withdrawn requests stay in the history. Requesters can only change their own pending requests.
 4. Resolve all pending requests before closing the list. Closed lists are grouped by shop, with per-shop and overall totals. Order admins/admins mark each line ordered; TAS records who marked it and when. Checkmarks track manual purchasing; TAS does not place orders with shops.
 5. Editing an ordered part clears its checkmark. Reopening preserves existing checkmarks and allows new requests and editor changes again. Categories still used by parts or pending requests cannot be deleted.
@@ -34,7 +34,7 @@ Standard parts are shared templates managed by order admins/admins. Changing or 
 
 No new TOML settings are needed. Startup automatically migrates PostgreSQL tables `order_lists` and `standard_parts`. Each list stores its categories, parts and request history together in JSONB. List changes use a database row lock and version check so competing edits cannot silently overwrite one another and a request cannot be accepted twice. A stale version returns HTTP 409; refresh the list before retrying.
 
-Prices are integer cents (`unitPriceCents`), never floating-point monetary values. Amounts are limited to 1–10,000 units, unit prices to €0–€1,000,000, and each list to 100 categories, 1,000 part lines and 1,000 requests including history. Lists and standard parts are currently loaded in full; search/filtering happens in the browser.
+Unit prices support up to five decimal places in EUR (for example, €0.00001). The API keeps the `unitPriceCents` field in cents, now allowing up to three decimal places (for example, `0.001` cents = €0.00001). The backend calculates using integer thousandths of a cent; standard parts use an exact PostgreSQL decimal column. Existing whole-cent prices retain their value, and the column migrates automatically at startup. Unit prices display up to five decimals; totals are calculated at full precision and displayed rounded to two decimals. Amounts are limited to 1–10,000 units, unit prices to €0–€1,000,000, and each list to 100 categories, 1,000 part lines and 1,000 requests including history. Lists and standard parts are currently loaded in full; search/filtering happens in the browser.
 
 Publish and deploy a fresh image with the existing GitHub workflow and Compose setup. The startup migrations require the same database permissions as the existing website/image migrations.
 

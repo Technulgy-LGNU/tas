@@ -226,7 +226,7 @@ See [the website API guide](docs/website-api.md) for all endpoints, response sha
 
 ## Orders
 
-Open **Orders** to manage named lists, categories, part requests and a reusable standard-parts library. Prices use EUR, with exact cent totals calculated as amount × unit price. The overview links to Website management and shows order statistics.
+Open **Orders** to manage named lists, categories, part requests and a reusable standard-parts library. Unit prices use EUR with up to five decimal places. Totals are calculated as amount × unit price at full precision and displayed rounded to cents. The overview links to Website management and shows order statistics.
 
 Assign `order_admin` to list managers and `order_request` to team requesters in FusionAuth. Editors can manage open-list parts and approve requests. Only `order_admin` and `admin` can change closed lists or mark parts ordered. Leave `[auth].required_role` empty to admit registered users with these roles.
 

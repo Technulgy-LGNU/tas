@@ -3,6 +3,9 @@ import { computed, ref } from 'vue'
 import {
   emptyPart,
   money,
+  unitPrice,
+  priceInput,
+  totalCents,
   partFields,
   priceCents,
   type PartFields,
@@ -32,20 +35,20 @@ const props = withDefaults(
 const emit = defineEmits<{ save: [part: PartFields, note: string] }>()
 const dialog = ref<HTMLDialogElement>()
 const draft = ref(emptyPart()),
-  price = ref('0.00'),
+  price = ref('0.00000'),
   note = ref(''),
   localError = ref(''),
   template = ref('')
 const estimate = computed(() => {
   try {
-    return money(priceCents(price.value) * draft.value.amount)
+    return money(totalCents([{ ...draft.value, unitPriceCents: priceCents(price.value) }]))
   } catch {
     return '—'
   }
 })
 function open(part: PartFields = emptyPart()) {
   draft.value = partFields(part)
-  price.value = (part.unitPriceCents / 100).toFixed(2)
+  price.value = priceInput(part.unitPriceCents)
   note.value = ''
   localError.value = ''
   template.value = ''
@@ -55,7 +58,7 @@ function selectTemplate() {
   const part = props.standards.find((p) => p.id === template.value)
   if (part) {
     draft.value = { ...partFields(part), categoryId: draft.value.categoryId }
-    price.value = (part.unitPriceCents / 100).toFixed(2)
+    price.value = priceInput(part.unitPriceCents)
   }
 }
 function save() {
@@ -97,7 +100,7 @@ defineExpose({ open, close: () => dialog.value?.close() })
           >Start from a standard part<select v-model="template" @change="selectTemplate">
             <option value="">Custom part</option>
             <option v-for="p in standards" :key="p.id" :value="p.id">
-              {{ p.name }} · {{ p.shop }} · {{ money(p.unitPriceCents) }}
+              {{ p.name }} · {{ p.shop }} · {{ unitPrice(p.unitPriceCents) }}
             </option>
           </select></label
         >
@@ -126,8 +129,8 @@ defineExpose({ open, close: () => dialog.value?.close() })
               aria-label="Unit price (EUR)"
               inputmode="decimal"
               required
-              maxlength="10"
-              placeholder="0.00"
+              maxlength="13"
+              placeholder="0.00000"
           /></label>
         </div>
         <label class="form-field"

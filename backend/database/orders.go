@@ -2,14 +2,14 @@ package database
 
 import "time"
 
-// Prices are integer EUR cents; amounts are whole units.
+// Prices use fixed-point arithmetic with five EUR decimal places; amounts are whole units.
 type OrderPartFields struct {
-	Name           string `json:"name"`
-	Amount         int64  `json:"amount"`
-	UnitPriceCents int64  `json:"unitPriceCents"`
-	Shop           string `json:"shop"`
-	Link           string `json:"link"`
-	CategoryID     string `json:"categoryId"`
+	Name           string     `json:"name"`
+	Amount         int64      `json:"amount"`
+	UnitPriceCents OrderMoney `json:"unitPriceCents"`
+	Shop           string     `json:"shop"`
+	Link           string     `json:"link"`
+	CategoryID     string     `json:"categoryId"`
 }
 type OrderCategory struct {
 	ID   string `json:"id"`
@@ -57,13 +57,13 @@ type OrderList struct {
 	ClosedAt  *time.Time   `json:"closedAt"`
 }
 type StandardPart struct {
-	ID             string    `gorm:"type:uuid;primaryKey" json:"id"`
-	Name           string    `gorm:"not null" json:"name"`
-	Amount         int64     `gorm:"not null" json:"amount"`
-	UnitPriceCents int64     `gorm:"not null" json:"unitPriceCents"`
-	Shop           string    `gorm:"not null" json:"shop"`
-	Link           string    `json:"link"`
-	Version        int       `gorm:"not null" json:"version"`
-	CreatedAt      time.Time `json:"createdAt"`
-	UpdatedAt      time.Time `json:"updatedAt"`
+	ID             string     `gorm:"type:uuid;primaryKey" json:"id"`
+	Name           string     `gorm:"not null" json:"name"`
+	Amount         int64      `gorm:"not null" json:"amount"`
+	UnitPriceCents OrderMoney `gorm:"type:numeric(14,3);not null" json:"unitPriceCents"`
+	Shop           string     `gorm:"not null" json:"shop"`
+	Link           string     `json:"link"`
+	Version        int        `gorm:"not null" json:"version"`
+	CreatedAt      time.Time  `json:"createdAt"`
+	UpdatedAt      time.Time  `json:"updatedAt"`
 }

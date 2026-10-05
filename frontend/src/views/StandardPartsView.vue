@@ -4,7 +4,7 @@ import OrderPartDialog from '@/components/orders/OrderPartDialog.vue'
 import {
   canViewOrders,
   manageOrders,
-  money,
+  unitPrice,
   ordersRequest,
   jsonOptions,
   type StandardPart,
@@ -124,7 +124,7 @@ onMounted(() => {
               </td>
               <td>{{ p.shop }}</td>
               <td>{{ p.amount }}</td>
-              <td>{{ money(p.unitPriceCents) }}</td>
+              <td>{{ unitPrice(p.unitPriceCents) }}</td>
               <td v-if="manageOrders">
                 <div class="inline-actions">
                   <button class="button secondary" :disabled="busy" @click="open(p)">Edit</button

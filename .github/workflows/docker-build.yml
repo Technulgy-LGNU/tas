@@ -64,6 +64,7 @@ jobs:
         run: |
           npx eslint .
           npx oxlint .
+          npm test
           npm run build
 
       - name: Configure isolated PostgreSQL tests

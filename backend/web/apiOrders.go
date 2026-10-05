@@ -57,7 +57,7 @@ func validateOrderPart(p *database.OrderPartFields, categories []database.OrderC
 	if !orderText(p.Name, 200, true) || !orderText(p.Shop, 200, true) {
 		return fiber.NewError(400, "Provide a part name and shop, up to 200 characters each.")
 	}
-	if p.Amount < 1 || p.Amount > 10000 || p.UnitPriceCents < 0 || p.UnitPriceCents > 100000000 {
+	if p.Amount < 1 || p.Amount > 10000 || p.UnitPriceCents < 0 || p.UnitPriceCents > 100000000*database.Cent {
 		return fiber.NewError(400, "Amount must be 1–10,000 whole units; unit price must be 0–1,000,000 EUR.")
 	}
 	if p.Link != "" {
@@ -103,13 +103,13 @@ func visibleOrder(l database.OrderList, u User) database.OrderList {
 }
 func orderSummary(l database.OrderList, u User) fiber.Map {
 	l = visibleOrder(l, u)
-	var total, orderedTotal int64
+	var total, orderedTotal database.OrderMoney
 	ordered, pending := 0, 0
 	for _, p := range l.Content.Parts {
-		total += p.Amount * p.UnitPriceCents
+		total += database.OrderMoney(p.Amount) * p.UnitPriceCents
 		if p.OrderedAt != nil {
 			ordered++
-			orderedTotal += p.Amount * p.UnitPriceCents
+			orderedTotal += database.OrderMoney(p.Amount) * p.UnitPriceCents
 		}
 	}
 	for _, r := range l.Content.Requests {
@@ -137,7 +137,7 @@ func (a *API) orderStats(c fiber.Ctx) error {
 		return orderError(c, err)
 	}
 	open, closed, pending, remaining := 0, 0, 0, 0
-	var openTotal, remainingTotal int64
+	var openTotal, remainingTotal database.OrderMoney
 	u := c.Locals("user").(User)
 	for _, l := range lists {
 		l = visibleOrder(l, u)
@@ -153,10 +153,10 @@ func (a *API) orderStats(c fiber.Ctx) error {
 		}
 		for _, p := range l.Content.Parts {
 			if l.Status == "open" {
-				openTotal += p.Amount * p.UnitPriceCents
+				openTotal += database.OrderMoney(p.Amount) * p.UnitPriceCents
 			} else if p.OrderedAt == nil {
 				remaining++
-				remainingTotal += p.Amount * p.UnitPriceCents
+				remainingTotal += database.OrderMoney(p.Amount) * p.UnitPriceCents
 			}
 		}
 	}

@@ -62,7 +62,7 @@ func TestOrderWorkflowAndPermissions(t *testing.T) {
 	action(orderCommand{Action: "add_category", Name: "Team Alpha"}, 200)
 	categoryID := l.Content.Categories[0].ID
 	action(orderCommand{Action: "add_category", TargetID: categoryID, Name: "team alpha"}, 409)
-	part := database.OrderPartFields{Name: "Motor", Amount: 3, UnitPriceCents: 199, Shop: "Robot Shop", Link: "https://shop.example.org/motor", CategoryID: categoryID}
+	part := database.OrderPartFields{Name: "Motor", Amount: 3, UnitPriceCents: 199 * database.Cent, Shop: "Robot Shop", Link: "https://shop.example.org/motor", CategoryID: categoryID}
 	user.ID = "team-a"
 	user.Username = "Team A"
 	user.Roles = []string{"order_request"}
@@ -111,7 +111,7 @@ func TestOrderWorkflowAndPermissions(t *testing.T) {
 		t.Fatal("stale list save accepted")
 	}
 	action(orderCommand{Action: "set_ordered", TargetID: l.Content.Parts[0].ID, Ordered: true}, 403)
-	action(orderCommand{Action: "add_part", Part: database.OrderPartFields{Name: "Sensor", Shop: "Another Shop", Amount: 2, UnitPriceCents: 101}}, 200)
+	action(orderCommand{Action: "add_part", Part: database.OrderPartFields{Name: "Sensor", Shop: "Another Shop", Amount: 2, UnitPriceCents: 101 * database.Cent}}, 200)
 	status, body = siteReq(t, app, "GET", "/api/v1/orders/lists", nil)
 	if status != 200 || body["lists"].([]any)[0].(map[string]any)["totalCents"] != float64(998) {
 		t.Fatalf("incorrect money total: %v", body)
@@ -173,7 +173,7 @@ func TestOrderWorkflowAndPermissions(t *testing.T) {
 }
 func TestStandardPartsAndOrderAccess(t *testing.T) {
 	_, app, user := orderFixture(t)
-	part := database.OrderPartFields{Name: "Screw", Amount: 10, UnitPriceCents: 7, Shop: "Hardware", Link: "https://shop.example.org/screw"}
+	part := database.OrderPartFields{Name: "Screw", Amount: 10, UnitPriceCents: 7 * database.Cent, Shop: "Hardware", Link: "https://shop.example.org/screw"}
 	user.Roles = []string{"editor"}
 	status, _ := siteReq(t, app, "POST", "/api/v1/orders/standard-parts", part)
 	if status != 403 {
@@ -186,7 +186,7 @@ func TestStandardPartsAndOrderAccess(t *testing.T) {
 	}
 	p := body["part"].(map[string]any)
 	id := p["id"].(string)
-	p["unitPriceCents"] = 9
+	p["unitPriceCents"] = 0.001
 	status, body = siteReq(t, app, "PUT", "/api/v1/orders/standard-parts/"+id, p)
 	if status != 200 || body["part"].(map[string]any)["version"] != float64(2) {
 		t.Fatalf("standard update failed: %v", body)
@@ -195,6 +195,11 @@ func TestStandardPartsAndOrderAccess(t *testing.T) {
 	if status != 409 {
 		t.Fatal("stale standard update accepted")
 	}
+	status, body = siteReq(t, app, "GET", "/api/v1/orders/standard-parts", nil)
+	if status != 200 || body["parts"].([]any)[0].(map[string]any)["unitPriceCents"] != 0.001 {
+		t.Fatalf("standard part lost five-decimal price: %v", body)
+	}
+	part.UnitPriceCents = 1
 	status, body = siteReq(t, app, "POST", "/api/v1/orders/lists", fiber.Map{"name": "Tools"})
 	if status != 201 {
 		t.Fatal(body)
@@ -213,7 +218,7 @@ func TestStandardPartsAndOrderAccess(t *testing.T) {
 		t.Fatal("standard delete failed")
 	}
 	status, body = siteReq(t, app, "GET", "/api/v1/orders/lists/"+l.ID, nil)
-	if status != 200 || len(decodeOrder(t, body).Content.Parts) != 1 {
+	if status != 200 || len(decodeOrder(t, body).Content.Parts) != 1 || decodeOrder(t, body).Content.Parts[0].UnitPriceCents != 1 {
 		t.Fatal("deleting standard affected copied line")
 	}
 	user.Roles = []string{"viewer"}
@@ -235,8 +240,8 @@ func TestStandardPartsAndOrderAccess(t *testing.T) {
 	}
 }
 func TestOrderValidation(t *testing.T) {
-	good := database.OrderPartFields{Name: "Motor", Shop: "Shop", Amount: 3, UnitPriceCents: 199, Link: "https://example.org"}
-	for _, mutate := range []func(*database.OrderPartFields){func(p *database.OrderPartFields) { p.Amount = 0 }, func(p *database.OrderPartFields) { p.Amount = 10001 }, func(p *database.OrderPartFields) { p.UnitPriceCents = -1 }, func(p *database.OrderPartFields) { p.UnitPriceCents = 100000001 }, func(p *database.OrderPartFields) { p.Link = "javascript:alert(1)" }, func(p *database.OrderPartFields) { p.Link = "https://user:secret@example.org" }, func(p *database.OrderPartFields) { p.CategoryID = uuid.NewString() }, func(p *database.OrderPartFields) { p.Name = "" }} {
+	good := database.OrderPartFields{Name: "Motor", Shop: "Shop", Amount: 3, UnitPriceCents: 199 * database.Cent, Link: "https://example.org"}
+	for _, mutate := range []func(*database.OrderPartFields){func(p *database.OrderPartFields) { p.Amount = 0 }, func(p *database.OrderPartFields) { p.Amount = 10001 }, func(p *database.OrderPartFields) { p.UnitPriceCents = -1 }, func(p *database.OrderPartFields) { p.UnitPriceCents = 100000001 * database.Cent }, func(p *database.OrderPartFields) { p.Link = "javascript:alert(1)" }, func(p *database.OrderPartFields) { p.Link = "https://user:secret@example.org" }, func(p *database.OrderPartFields) { p.CategoryID = uuid.NewString() }, func(p *database.OrderPartFields) { p.Name = "" }} {
 		p := good
 		mutate(&p)
 		if validateOrderPart(&p, nil) == nil {
@@ -251,6 +256,74 @@ func TestOrderValidation(t *testing.T) {
 	l := database.OrderList{Status: "open", Content: database.OrderContent{Requests: []database.OrderRequest{{ID: "request", CreatedBy: user.ID, Status: "accepted"}}}}
 	if applyOrderCommand(&l, user, orderCommand{Action: "edit_request", TargetID: "request", Part: good}) == nil {
 		t.Fatal("resolved request editable")
+	}
+}
+
+func TestOrderFractionalCentTotals(t *testing.T) {
+	var part database.OrderPartFields
+	if err := json.Unmarshal([]byte(`{"name":"SMD resistor","shop":"Parts","amount":10000,"unitPriceCents":0.001}`), &part); err != nil {
+		t.Fatal(err)
+	}
+	if err := validateOrderPart(&part, nil); err != nil {
+		t.Fatal(err)
+	}
+	l := database.OrderList{Content: database.OrderContent{Parts: []database.OrderPart{{OrderPartFields: part}}}}
+	summary := orderSummary(l, User{Roles: []string{"admin"}})
+	if summary["totalCents"] != 10*database.Cent {
+		t.Fatalf("tiny unit price total: %v", summary)
+	}
+	requestList := database.OrderList{Status: "open"}
+	requester := User{ID: "team", Roles: []string{"order_request"}}
+	if err := applyOrderCommand(&requestList, requester, orderCommand{Action: "request_part", Part: part}); err != nil {
+		t.Fatal(err)
+	}
+	requestID := requestList.Content.Requests[0].ID
+	part.UnitPriceCents = 123
+	if err := applyOrderCommand(&requestList, requester, orderCommand{Action: "edit_request", TargetID: requestID, Part: part}); err != nil {
+		t.Fatal(err)
+	}
+	if err := applyOrderCommand(&requestList, User{Roles: []string{"editor"}}, orderCommand{Action: "accept_request", TargetID: requestID, Part: part}); err != nil {
+		t.Fatal(err)
+	}
+	if requestList.Content.Requests[0].UnitPriceCents != 123 || requestList.Content.Parts[0].UnitPriceCents != 123 {
+		t.Fatal("request editing or approval lost price precision")
+	}
+	part.UnitPriceCents = 100000000*database.Cent + 1
+	if validateOrderPart(&part, nil) == nil {
+		t.Fatal("accepted price one precision unit above maximum")
+	}
+}
+
+func TestOrderPriceMigration(t *testing.T) {
+	db := websiteDatabase(t)
+	// Match the previous standard-part schema, including an existing whole-cent price.
+	if err := db.Exec(`CREATE TABLE standard_parts (
+		id uuid PRIMARY KEY, name text NOT NULL, amount bigint NOT NULL,
+		unit_price_cents bigint NOT NULL, shop text NOT NULL, link text,
+		version bigint NOT NULL, created_at timestamptz, updated_at timestamptz
+	)`).Error; err != nil {
+		t.Fatal(err)
+	}
+	id := uuid.NewString()
+	if err := db.Exec(`INSERT INTO standard_parts (id, name, amount, unit_price_cents, shop, version)
+		VALUES (?, 'Legacy part', 1, 199, 'Shop', 1)`, id).Error; err != nil {
+		t.Fatal(err)
+	}
+	for range 2 { // Startup migration must also be safe to repeat.
+		if err := db.AutoMigrate(&database.StandardPart{}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var part database.StandardPart
+	if err := db.First(&part, "id = ?", id).Error; err != nil || part.UnitPriceCents != 199*database.Cent {
+		t.Fatalf("legacy price changed: %+v, %v", part, err)
+	}
+	part.UnitPriceCents = 1
+	if err := db.Save(&part).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.First(&part, "id = ?", id).Error; err != nil || part.UnitPriceCents != 1 {
+		t.Fatalf("fractional cent lost: %+v, %v", part, err)
 	}
 }
 
@@ -275,7 +348,7 @@ func TestOrderRequestResolution(t *testing.T) {
 	}
 	user.ID = "team"
 	user.Roles = []string{"order_request"}
-	part := database.OrderPartFields{Name: "Screw", Shop: "Hardware", Amount: 10, UnitPriceCents: 7}
+	part := database.OrderPartFields{Name: "Screw", Shop: "Hardware", Amount: 10, UnitPriceCents: 7 * database.Cent}
 	action(orderCommand{Action: "request_part", Part: part}, 200)
 	id := l.Content.Requests[0].ID
 	part.Amount = 20
